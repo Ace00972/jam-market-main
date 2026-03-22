@@ -1,0 +1,752 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
+
+/* =============================================
+   1. GLOBAL RESET & THEME VARIABLES
+   ============================================= */
+:root {
+  --primary-green: #1b4332;
+  --primary-green-light: #2d6a4f;
+  --jamaica-gold: #ffb81c;
+  --jamaica-gold-dark: #e09f00;
+  --light-gray: #f0f4f2;
+  --mid-gray: #d9e4de;
+  --dark-text: #1a2e25;
+  --muted-text: #5a7a68;
+  --white: #ffffff;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.16);
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --transition: 0.25s ease;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background-color: var(--light-gray);
+  color: var(--dark-text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* =============================================
+   2. SITE WRAPPER
+   ============================================= */
+.site-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.page-content {
+  flex: 1;
+}
+
+/* =============================================
+   3. NAVIGATION BAR
+   ============================================= */
+.main-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 5%;
+  height: 68px;
+  background: var(--primary-green);
+  color: var(--white);
+  box-shadow: var(--shadow-md);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  cursor: pointer;
+  color: var(--jamaica-gold);
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.nav-links {
+  display: flex;
+  list-style: none;
+  gap: 36px;
+}
+
+.nav-links li {
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  transition: color var(--transition);
+  padding: 4px 0;
+  position: relative;
+}
+
+.nav-links li::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--jamaica-gold);
+  transition: width var(--transition);
+}
+
+.nav-links li:hover {
+  color: var(--jamaica-gold);
+}
+
+.nav-links li:hover::after {
+  width: 100%;
+}
+
+.auth-buttons {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* =============================================
+   4. BUTTONS
+   ============================================= */
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 11px 24px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+/* Primary gold button */
+.btn-login,
+button[type="submit"],
+.btn-primary {
+  background-color: var(--jamaica-gold);
+  color: var(--primary-green);
+}
+
+.btn-login:hover,
+button[type="submit"]:hover,
+.btn-primary:hover {
+  background-color: var(--jamaica-gold-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 184, 28, 0.35);
+}
+
+/* Secondary / outline button */
+.btn-logout,
+.btn-alt {
+  background-color: transparent;
+  border: 1.5px solid var(--primary-green);
+  color: var(--primary-green);
+}
+
+.btn-logout:hover,
+.btn-alt:hover {
+  background-color: var(--primary-green);
+  color: var(--white);
+  transform: translateY(-1px);
+}
+
+/* White outline (for dark nav backgrounds) */
+.btn-nav-outline {
+  background-color: transparent;
+  border: 1.5px solid rgba(255, 255, 255, 0.5);
+  color: var(--white);
+}
+
+.btn-nav-outline:hover {
+  border-color: var(--jamaica-gold);
+  color: var(--jamaica-gold);
+}
+
+/* Danger button */
+.btn-danger {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #c0392b;
+  transform: translateY(-1px);
+}
+
+/* =============================================
+   5. HERO / HOME PAGE
+   ============================================= */
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 68px);
+  text-align: center;
+  padding: 60px 24px;
+  background:
+    linear-gradient(rgba(10, 40, 25, 0.62), rgba(10, 40, 25, 0.72)),
+    url('https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?auto=format&fit=crop&w=1400&q=80') center/cover no-repeat;
+  color: var(--white);
+}
+
+.hero h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2.4rem, 6vw, 4rem);
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 16px;
+  letter-spacing: -0.5px;
+}
+
+.hero p {
+  font-size: 1.15rem;
+  color: rgba(255, 255, 255, 0.82);
+  max-width: 520px;
+  margin: 0 auto 36px;
+  line-height: 1.7;
+}
+
+.hero button {
+  padding: 14px 36px;
+  font-size: 1rem;
+  background-color: var(--jamaica-gold);
+  color: var(--primary-green);
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  box-shadow: 0 4px 18px rgba(255, 184, 28, 0.45);
+}
+
+.hero button:hover {
+  background-color: var(--jamaica-gold-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(255, 184, 28, 0.5);
+}
+
+/* =============================================
+   6. AUTH FORMS (Login & Register)
+   ============================================= */
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 68px);
+  padding: 40px 24px;
+}
+
+.auth-form {
+  background: var(--white);
+  padding: 48px 44px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border-top: 5px solid var(--jamaica-gold);
+}
+
+.auth-form h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--primary-green);
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+/* =============================================
+   7. FORM INPUTS
+   ============================================= */
+input,
+textarea,
+select {
+  width: 100%;
+  padding: 13px 16px;
+  border: 1.5px solid var(--mid-gray);
+  border-radius: var(--radius-sm);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.95rem;
+  color: var(--dark-text);
+  background: #fafcfb;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  outline: none;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--primary-green-light);
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.12);
+  background: var(--white);
+}
+
+textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235a7a68' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 40px;
+}
+
+/* =============================================
+   8. WELCOME / DASHBOARD PAGE
+   ============================================= */
+.welcome-screen {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: calc(100vh - 68px);
+  padding: 60px 24px;
+  background: var(--light-gray);
+}
+
+.welcome-card {
+  background: var(--white);
+  padding: 48px 44px;
+  border-radius: var(--radius-lg);
+  text-align: center;
+  box-shadow: var(--shadow-md);
+  border-top: 6px solid var(--jamaica-gold);
+  width: 100%;
+  max-width: 560px;
+}
+
+.welcome-card h1,
+.welcome-card h2 {
+  font-family: 'Playfair Display', serif;
+  color: var(--primary-green);
+  margin-bottom: 12px;
+}
+
+.welcome-card h1 {
+  font-size: 2rem;
+}
+
+.welcome-card h2 {
+  font-size: 1.6rem;
+}
+
+.welcome-card p {
+  color: var(--muted-text);
+  font-size: 1rem;
+  margin-bottom: 28px;
+}
+
+.quick-stats {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin: 24px 0 32px;
+  padding: 20px;
+  background: var(--light-gray);
+  border-radius: var(--radius-md);
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--primary-green);
+}
+
+.welcome-actions {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.welcome-actions button {
+  min-width: 160px;
+  padding: 13px 28px;
+}
+
+/* =============================================
+   9. MARKETPLACE PAGE
+   ============================================= */
+.product-view {
+  padding: 48px 5%;
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+.product-view h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem;
+  color: var(--primary-green);
+  margin-bottom: 28px;
+}
+
+/* Marketplace search/filter bar */
+.market-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
+  background: var(--white);
+  padding: 18px 22px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.market-controls input {
+  max-width: 280px;
+  flex: 1;
+}
+
+.radius-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.radius-group input[type="number"] {
+  width: 80px;
+  flex: none;
+}
+
+.radius-group span {
+  font-size: 0.88rem;
+  color: var(--muted-text);
+  font-weight: 500;
+}
+
+.market-controls button {
+  margin-left: auto;
+  padding: 11px 22px;
+  background: var(--primary-green);
+  color: var(--white);
+  border-radius: var(--radius-sm);
+}
+
+.market-controls button:hover {
+  background: var(--primary-green-light);
+  transform: translateY(-1px);
+}
+
+/* Product grid */
+.prod-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 24px;
+}
+
+.prod-card {
+  background: var(--white);
+  padding: 24px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition), box-shadow var(--transition);
+  cursor: pointer;
+  border: 1.5px solid transparent;
+}
+
+.prod-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--mid-gray);
+}
+
+.prod-card h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.2rem;
+  color: var(--primary-green);
+  margin-bottom: 10px;
+}
+
+.prod-card p {
+  font-size: 0.9rem;
+  color: var(--muted-text);
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+
+.prod-card p strong {
+  color: var(--dark-text);
+}
+
+.prod-card p:first-of-type {
+  font-size: 0.95rem;
+  margin-bottom: 14px;
+  color: #4a6a58;
+}
+
+.no-products {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--muted-text);
+  font-size: 1rem;
+  grid-column: 1 / -1;
+}
+
+/* =============================================
+   10. PRODUCT DETAILS / EDIT / ADD
+   ============================================= */
+.product-detail-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--mid-gray);
+}
+
+.product-detail-actions button {
+  min-width: 130px;
+}
+
+/* =============================================
+   11. MESSAGES PAGE
+   ============================================= */
+.messages-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+  text-align: left;
+}
+
+.messages-list li button {
+  width: 100%;
+  background: var(--light-gray);
+  color: var(--dark-text);
+  border: 1.5px solid var(--mid-gray);
+  padding: 14px 20px;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  justify-content: flex-start;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all var(--transition);
+}
+
+.messages-list li button:hover {
+  background: var(--primary-green);
+  color: var(--white);
+  border-color: var(--primary-green);
+  transform: translateX(4px);
+}
+
+/* =============================================
+   12. CHAT PAGE
+   ============================================= */
+.chat-thread {
+  min-height: 180px;
+  max-height: 360px;
+  overflow-y: auto;
+  background: var(--light-gray);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  margin-bottom: 20px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chat-message {
+  background: var(--white);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  box-shadow: var(--shadow-sm);
+}
+
+.chat-message strong {
+  color: var(--primary-green);
+  display: block;
+  font-size: 0.82rem;
+  margin-bottom: 3px;
+}
+
+.chat-form {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.chat-form input {
+  flex: 1;
+}
+
+.chat-form button {
+  white-space: nowrap;
+  padding: 13px 22px;
+  background: var(--primary-green);
+  color: var(--white);
+}
+
+.chat-form button:hover {
+  background: var(--primary-green-light);
+}
+
+/* =============================================
+   13. ORDERS TABLE
+   ============================================= */
+.order-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--white);
+  margin-top: 24px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  font-size: 0.93rem;
+}
+
+.order-table th,
+.order-table td {
+  padding: 15px 18px;
+  text-align: left;
+  border-bottom: 1px solid var(--mid-gray);
+}
+
+.order-table th {
+  background: var(--primary-green);
+  color: var(--white);
+  font-weight: 600;
+  font-size: 0.88rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.order-table tr:last-child td {
+  border-bottom: none;
+}
+
+.order-table tr:hover td {
+  background: #f5f9f7;
+}
+
+/* =============================================
+   14. UTILITY
+   ============================================= */
+.section-divider {
+  height: 1px;
+  background: var(--mid-gray);
+  margin: 24px 0;
+}
+
+/* =============================================
+   16. FOOTER
+   ============================================= */
+.site-footer {
+  text-align: center;
+  padding: 24px 20px;
+  background: var(--white);
+  border-top: 1px solid var(--mid-gray);
+  margin-top: auto;
+}
+
+.footer-contact {
+  font-size: 0.9rem;
+  color: var(--muted-text);
+  margin-bottom: 6px;
+}
+
+.footer-copy {
+  font-size: 0.82rem;
+  color: #aab8b2;
+}
+@media (max-width: 768px) {
+  .main-nav {
+    padding: 0 4%;
+    height: 60px;
+  }
+
+  .logo {
+    font-size: 1.1rem;
+  }
+
+  .nav-links {
+    gap: 20px;
+  }
+
+  .nav-links li {
+    font-size: 0.85rem;
+  }
+
+  .auth-form,
+  .welcome-card {
+    padding: 32px 24px;
+  }
+
+  .product-view {
+    padding: 32px 4%;
+  }
+
+  .market-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .market-controls input {
+    max-width: 100%;
+  }
+
+  .market-controls button {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .welcome-actions {
+    flex-direction: column;
+  }
+
+  .welcome-actions button {
+    width: 100%;
+  }
+
+  .quick-stats {
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .chat-form {
+    flex-direction: column;
+  }
+
+  .chat-form button {
+    width: 100%;
+  }
+}
