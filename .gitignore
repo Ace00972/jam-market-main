@@ -1,24 +1,28 @@
+# Secrets (Crucial for Jam Market)
+.env
+.env.local
+.env.*
+
+# Python / Django
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+db.sqlite3
+
+# Node / React
+node_modules/
+dist/
+dist-ssr
+build/
+
 # Logs
 logs
 *.log
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# Editor
+.vscode/
+.idea/
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
