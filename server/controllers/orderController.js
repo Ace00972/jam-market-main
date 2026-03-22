@@ -5,22 +5,45 @@ const pool = require('../db');
 
 const placeOrder = async (req, res) => {
   try {
-    const { product_id, quantity } = req.body;
-    if (!product_id || !quantity) return res.status(400).json({ message: 'product_id and quantity required' });
+    const { product_id, quantity, payment_method } = req.body;
 
     const [[product]] = await pool.query('SELECT * FROM products WHERE id=?', [product_id]);
     if (!product) return res.status(404).json({ message: 'Product not found' });
     if (product.quantity < quantity) return res.status(400).json({ message: 'Not enough stock' });
 
-    const total_price = parseFloat(product.price) * quantity;
+    // ── DUAL PRICING LOGIC ──────────────────
+    // Use wholesale price if quantity meets minimum and wholesale price exists
+    let unit_price = parseFloat(product.price);
+    let price_type = 'retail';
+
+    if (
+      product.wholesale_price &&
+      product.wholesale_min_quantity &&
+      quantity >= product.wholesale_min_quantity
+    ) {
+      unit_price = parseFloat(product.wholesale_price);
+      price_type = 'wholesale';
+    }
+
+    const total_price = unit_price * quantity;
 
     const [result] = await pool.query(
-      'INSERT INTO orders (customer_id, product_id, quantity, total_price, status) VALUES (?,?,?,?,?)',
-      [req.user.id, product_id, quantity, total_price, 'pending']
+      `INSERT INTO orders 
+       (customer_id, product_id, quantity, total_price, status, payment_method, payment_status) 
+       VALUES (?,?,?,?,?,?,?)`,
+      [req.user.id, product_id, quantity, total_price, 'pending', payment_method || 'pending', 'unpaid']
     );
+
     await pool.query('UPDATE products SET quantity = quantity - ? WHERE id=?', [quantity, product_id]);
 
-    res.status(201).json({ id: result.insertId, total_price, status: 'pending' });
+    res.status(201).json({
+      id: result.insertId,
+      total_price,
+      unit_price,
+      price_type,
+      status: 'pending',
+      payment_status: 'unpaid',
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -75,4 +98,62 @@ const updateOrderStatus = async (req, res) => {
   }
 };
 
-module.exports = { placeOrder, getMyOrders, updateOrderStatus };
+// Get price preview before placing order
+const getPrice = async (req, res) => {
+  try {
+    const { product_id, quantity } = req.query;
+
+    const [[product]] = await pool.query('SELECT * FROM products WHERE id=?', [product_id]);
+    if (!product) return res.status(404).json({ message: 'Product not found' });
+
+    let unit_price = parseFloat(product.price);
+    let price_type = 'retail';
+
+    if (
+      product.wholesale_price &&
+      product.wholesale_min_quantity &&
+      quantity >= product.wholesale_min_quantity
+    ) {
+      unit_price = parseFloat(product.wholesale_price);
+      price_type = 'wholesale';
+    }
+
+    res.json({
+      unit_price,
+      price_type,
+      total_price: unit_price * quantity,
+      retail_price: product.price,
+      wholesale_price: product.wholesale_price,
+      wholesale_min_quantity: product.wholesale_min_quantity,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+const cancelOrder = async (req, res) => {
+  try {
+    let result;
+    if (req.user.role === 'customer') {
+      [result] = await pool.query(
+        'DELETE FROM orders WHERE id=? AND customer_id=? AND status="pending"',
+        [req.params.id, req.user.id]
+      );
+    } else if (req.user.role === 'farmer') {
+      [result] = await pool.query(
+        `DELETE o FROM orders o
+         JOIN products p ON o.product_id = p.id
+         WHERE o.id=? AND p.farmer_id=?`,
+        [req.params.id, req.user.id]
+      );
+    }
+
+    if (result.affectedRows === 0)
+      return res.status(404).json({ message: 'Order not found or cannot be deleted' });
+
+    res.json({ message: 'Order cancelled' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+module.exports = { placeOrder, getMyOrders, updateOrderStatus, getPrice, cancelOrder };

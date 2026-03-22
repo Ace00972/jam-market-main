@@ -3,9 +3,10 @@
 // ═══════════════════════════════════════════════
 const { Router } = require('express');
 const { register, login } = require('../controllers/authController');
+const { registerRules, loginRules, validate } = require('../middleware/validate');
 
 const router = Router();
-router.post('/register', register);
-router.post('/login',    login);
+router.post('/register', registerRules, validate, register);
+router.post('/login',    loginRules,    validate, login);
 
 module.exports = router;
