@@ -11,6 +11,6 @@ router.get('/price',        protect, getPrice);
 router.post('/',            protect, requireRole('customer'), orderRules, validate, placeOrder);
 router.get('/mine',         protect, getMyOrders);
 router.patch('/:id/status', protect, requireRole('farmer'), updateOrderStatus);
-router.delete('/:id', protect, cancelOrder);
+router.delete('/:id',       protect, cancelOrder);
 
 module.exports = router;

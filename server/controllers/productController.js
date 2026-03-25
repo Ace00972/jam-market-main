@@ -19,15 +19,15 @@ const getAllProducts = async (req, res) => {
 
 const createProduct = async (req, res) => {
   try {
-    const { name, description, price, wholesale_price, wholesale_min_quantity, quantity, location } = req.body;
+    const { name, description, price, wholesale_price, wholesale_min_quantity, quantity, location, shipping_fee } = req.body;
 
     const [result] = await pool.query(
       `INSERT INTO products 
-       (farmer_id, name, description, price, wholesale_price, wholesale_min_quantity, quantity, location) 
-       VALUES (?,?,?,?,?,?,?,?)`,
-      [req.user.id, name, description || '', price, wholesale_price || null, wholesale_min_quantity || 10, quantity || 1, location || null]
+       (farmer_id, name, description, price, wholesale_price, wholesale_min_quantity, quantity, location, shipping_fee) 
+       VALUES (?,?,?,?,?,?,?,?,?)`,
+      [req.user.id, name, description || '', price, wholesale_price || null, wholesale_min_quantity || 10, quantity || 1, location || null, shipping_fee || 0]
     );
-    res.status(201).json({ id: result.insertId, name, price, wholesale_price, description, location, farmer_id: req.user.id });
+    res.status(201).json({ id: result.insertId, name, price, wholesale_price, description, location, shipping_fee, farmer_id: req.user.id });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -35,12 +35,12 @@ const createProduct = async (req, res) => {
 
 const updateProduct = async (req, res) => {
   try {
-    const { name, description, price, wholesale_price, wholesale_min_quantity, quantity, location } = req.body;
+    const { name, description, price, wholesale_price, wholesale_min_quantity, quantity, location, shipping_fee } = req.body;
     const [result] = await pool.query(
       `UPDATE products 
-       SET name=?, description=?, price=?, wholesale_price=?, wholesale_min_quantity=?, quantity=?, location=? 
+       SET name=?, description=?, price=?, wholesale_price=?, wholesale_min_quantity=?, quantity=?, location=?, shipping_fee=?
        WHERE id=? AND farmer_id=?`,
-      [name, description, price, wholesale_price || null, wholesale_min_quantity || 10, quantity, location, req.params.id, req.user.id]
+      [name, description, price, wholesale_price || null, wholesale_min_quantity || 10, quantity, location, shipping_fee || 0, req.params.id, req.user.id]
     );
     if (result.affectedRows === 0)
       return res.status(404).json({ message: 'Product not found or not yours' });

@@ -1,7 +1,6 @@
 import './App.css';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
-// ─── API CLIENT ───────────────────────────────────────────────────────────────
 const BASE = 'http://localhost:5000/api';
 
 async function apiFetch(path, options = {}) {
@@ -32,17 +31,28 @@ function App() {
   const [loading, setLoading]                 = useState(false);
   const [error, setError]                     = useState('');
   const [showWholesale, setShowWholesale]     = useState(false);
+  const [profileOpen, setProfileOpen]         = useState(false);
+  const profileRef                            = useRef(null);
   const [newProduct, setNewProduct]           = useState({
     name: '', price: '', wholesale_price: '', wholesale_min_quantity: '10',
-    description: '', location: '', quantity: '1'
+    description: '', location: '', quantity: '1', shipping_fee: '0'
   });
 
-  // Checkout state
   const [checkoutProduct, setCheckoutProduct] = useState(null);
   const [checkoutQty, setCheckoutQty]         = useState(1);
   const [checkoutPayment, setCheckoutPayment] = useState('paypal');
   const [pricePreview, setPricePreview]       = useState(null);
   const [orderResult, setOrderResult]         = useState(null);
+
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    const handler = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target))
+        setProfileOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   // Restore session
   useEffect(() => {
@@ -55,98 +65,66 @@ function App() {
   }, []);
 
   const fetchProducts = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const data = await apiFetch('/products');
-      setProducts(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true); setError('');
+    try { const data = await apiFetch('/products'); setProducts(data); }
+    catch (err) { setError(err.message); }
+    finally { setLoading(false); }
   }, []);
 
-  useEffect(() => {
-    if (isLoggedIn) fetchProducts();
-  }, [isLoggedIn, fetchProducts]);
+  useEffect(() => { if (isLoggedIn) fetchProducts(); }, [isLoggedIn, fetchProducts]);
 
   const fetchInbox = useCallback(async () => {
     setLoading(true);
-    try {
-      const data = await apiFetch('/messages/inbox');
-      setMessages(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    try { const data = await apiFetch('/messages/inbox'); setMessages(data); }
+    catch (err) { setError(err.message); }
+    finally { setLoading(false); }
   }, []);
 
   useEffect(() => {
     if (isLoggedIn && page === 'messages') fetchInbox();
   }, [isLoggedIn, page, fetchInbox]);
 
-  // Live price preview on checkout
   useEffect(() => {
     if (!checkoutProduct || !checkoutQty) return;
     apiFetch(`/orders/price?product_id=${checkoutProduct.id}&quantity=${checkoutQty}`)
-      .then(setPricePreview)
-      .catch(() => {});
+      .then(setPricePreview).catch(() => {});
   }, [checkoutProduct, checkoutQty]);
 
   // ── AUTH ──────────────────────────────────────
   const handleLogin = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+    e.preventDefault(); setError(''); setLoading(true);
     try {
       const { email, password } = Object.fromEntries(new FormData(e.target));
-      const data = await apiFetch('/auth/login', {
-        method: 'POST', body: JSON.stringify({ email, password }),
-      });
+      const data = await apiFetch('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
       localStorage.setItem('jm_token', data.token);
       localStorage.setItem('jm_user', JSON.stringify(data.user));
-      setUser(data.user);
-      setIsLoggedIn(true);
-      setPage('welcome');
+      setUser(data.user); setIsLoggedIn(true); setPage('welcome');
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   };
 
   const handleRegister = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+    e.preventDefault(); setError(''); setLoading(true);
     try {
       const { name, role, location, email, password } = Object.fromEntries(new FormData(e.target));
-      await apiFetch('/auth/register', {
-        method: 'POST', body: JSON.stringify({ name, role, location, email, password }),
-      });
-      const loginData = await apiFetch('/auth/login', {
-        method: 'POST', body: JSON.stringify({ email, password }),
-      });
+      await apiFetch('/auth/register', { method: 'POST', body: JSON.stringify({ name, role, location, email, password }) });
+      const loginData = await apiFetch('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
       localStorage.setItem('jm_token', loginData.token);
       localStorage.setItem('jm_user', JSON.stringify(loginData.user));
-      setUser(loginData.user);
-      setIsLoggedIn(true);
-      setPage('welcome');
+      setUser(loginData.user); setIsLoggedIn(true); setPage('welcome');
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('jm_token');
-    localStorage.removeItem('jm_user');
+    localStorage.removeItem('jm_token'); localStorage.removeItem('jm_user');
     setUser(null); setIsLoggedIn(false); setProducts([]); setMessages([]);
-    setPage('home');
+    setProfileOpen(false); setPage('home');
   };
 
   // ── PRODUCTS ──────────────────────────────────
   const handleAddProduct = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+    e.preventDefault(); setError(''); setLoading(true);
     try {
       await apiFetch('/products', {
         method: 'POST',
@@ -156,11 +134,11 @@ function App() {
           wholesale_price: newProduct.wholesale_price ? parseFloat(newProduct.wholesale_price) : undefined,
           wholesale_min_quantity: parseInt(newProduct.wholesale_min_quantity) || 10,
           quantity: parseInt(newProduct.quantity) || 1,
+          shipping_fee: parseFloat(newProduct.shipping_fee) || 0,
         }),
       });
-      setNewProduct({ name: '', price: '', wholesale_price: '', wholesale_min_quantity: '10', description: '', location: '', quantity: '1' });
-      await fetchProducts();
-      setPage('products');
+      setNewProduct({ name: '', price: '', wholesale_price: '', wholesale_min_quantity: '10', description: '', location: '', quantity: '1', shipping_fee: '0' });
+      await fetchProducts(); setPage('products');
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   };
@@ -168,16 +146,12 @@ function App() {
   const handleDeleteProduct = async (id) => {
     try {
       await apiFetch(`/products/${id}`, { method: 'DELETE' });
-      setSelectedProduct(null);
-      await fetchProducts();
-      setPage('products');
+      setSelectedProduct(null); await fetchProducts(); setPage('products');
     } catch (err) { setError(err.message); }
   };
 
   const handleEditProduct = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+    e.preventDefault(); setError(''); setLoading(true);
     try {
       await apiFetch(`/products/${selectedProduct.id}`, {
         method: 'PUT',
@@ -189,71 +163,51 @@ function App() {
           description: selectedProduct.description,
           location: selectedProduct.location,
           quantity: parseInt(selectedProduct.quantity) || 1,
+          shipping_fee: parseFloat(selectedProduct.shipping_fee) || 0,
         }),
       });
-      await fetchProducts();
-      setSelectedProduct(null);
-      setPage('products');
+      await fetchProducts(); setSelectedProduct(null); setPage('products');
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   };
 
   // ── CHECKOUT ──────────────────────────────────
   const handleCheckout = (product) => {
-    setCheckoutProduct(product);
-    setCheckoutQty(1);
-    setCheckoutPayment('paypal');
-    setPricePreview(null);
-    setOrderResult(null);
-    setPage('checkout');
+    setCheckoutProduct(product); setCheckoutQty(1);
+    setCheckoutPayment('paypal'); setPricePreview(null);
+    setOrderResult(null); setPage('checkout');
   };
 
   const handlePlaceOrder = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+    e.preventDefault(); setError(''); setLoading(true);
     try {
       const order = await apiFetch('/orders', {
         method: 'POST',
-        body: JSON.stringify({
-          product_id: checkoutProduct.id,
-          quantity: checkoutQty,
-          payment_method: checkoutPayment,
-        }),
+        body: JSON.stringify({ product_id: checkoutProduct.id, quantity: checkoutQty, payment_method: checkoutPayment }),
       });
       const payment = await apiFetch('/payments/simulate', {
         method: 'POST',
         body: JSON.stringify({ order_id: order.id, gateway: checkoutPayment }),
       });
-      setOrderResult({ order, payment });
-      setPage('orderSuccess');
-      await fetchProducts();
+      setOrderResult({ order, payment }); setPage('orderSuccess'); await fetchProducts();
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   };
 
   // ── MESSAGES ──────────────────────────────────
   const handleStartChat = async (otherUser) => {
-    setChatUser(otherUser);
-    setLoading(true);
-    try {
-      const data = await apiFetch(`/messages/${otherUser.id}`);
-      setChatThread(data);
-    } catch (err) { setError(err.message); }
+    setChatUser(otherUser); setLoading(true);
+    try { const data = await apiFetch(`/messages/${otherUser.id}`); setChatThread(data); }
+    catch (err) { setError(err.message); }
     finally { setLoading(false); }
     setPage('chat');
   };
 
   const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if (!newMessage.trim()) return;
+    e.preventDefault(); if (!newMessage.trim()) return;
     try {
-      const sent = await apiFetch('/messages', {
-        method: 'POST',
-        body: JSON.stringify({ receiver_id: chatUser.id, message: newMessage }),
-      });
-      setChatThread(prev => [...prev, { ...sent, sender_id: user.id }]);
-      setNewMessage('');
+      const sent = await apiFetch('/messages', { method: 'POST', body: JSON.stringify({ receiver_id: chatUser.id, message: newMessage }) });
+      setChatThread(prev => [...prev, { ...sent, sender_id: user.id }]); setNewMessage('');
     } catch (err) { setError(err.message); }
   };
 
@@ -277,6 +231,7 @@ function App() {
   return (
     <div className="site-wrapper">
 
+      {/* NAVIGATION */}
       <nav className="main-nav">
         <div className="logo" onClick={() => setPage('home')}>JAM MARKET</div>
         <ul className="nav-links">
@@ -292,7 +247,39 @@ function App() {
               <button className="btn-login" onClick={() => setPage('register')}>Register</button>
             </>
           ) : (
-            <button className="btn-login" onClick={handleLogout}>Logout</button>
+            /* Profile icon dropdown */
+            <div className="profile-wrapper" ref={profileRef}>
+              <button className="profile-icon-btn" onClick={() => setProfileOpen(o => !o)}>
+                <div className="profile-avatar">
+                  {user?.name?.charAt(0).toUpperCase()}
+                </div>
+                <span className="profile-name">{user?.name}</span>
+                <span className="profile-caret">{profileOpen ? '▲' : '▼'}</span>
+              </button>
+              {profileOpen && (
+                <div className="profile-dropdown">
+                  <div className="profile-dropdown-header">
+                    <div className="profile-avatar large">{user?.name?.charAt(0).toUpperCase()}</div>
+                    <div>
+                      <strong>{user?.name}</strong>
+                      <span>{user?.role}</span>
+                      <span>{user?.location}</span>
+                    </div>
+                  </div>
+                  <div className="profile-dropdown-divider" />
+                  <button className="profile-dropdown-item" onClick={() => { setPage('orders'); setProfileOpen(false); }}>
+                    📋 My Orders
+                  </button>
+                  <button className="profile-dropdown-item" onClick={() => { setPage('messages'); setProfileOpen(false); }}>
+                    💬 Messages
+                  </button>
+                  <div className="profile-dropdown-divider" />
+                  <button className="profile-dropdown-item danger" onClick={handleLogout}>
+                    🚪 Logout
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </nav>
@@ -399,6 +386,11 @@ function App() {
                     )}
                     <p><strong>Seller:</strong> {prod.farmer_name}</p>
                     <p><strong>Location:</strong> {prod.location}</p>
+                    {prod.shipping_fee > 0 && (
+                      <p style={{ fontSize: '12px', color: 'var(--muted-text)' }}>
+                        🚚 Shipping: J${parseFloat(prod.shipping_fee).toLocaleString()}
+                      </p>
+                    )}
                   </div>
                 );
               })}
@@ -425,6 +417,9 @@ function App() {
               <input placeholder="Stock quantity" type="number" min="1"
                 value={newProduct.quantity}
                 onChange={e => setNewProduct({ ...newProduct, quantity: e.target.value })} required />
+              <input placeholder="Shipping & handling fee (JMD)" type="number" min="0" step="0.01"
+                value={newProduct.shipping_fee}
+                onChange={e => setNewProduct({ ...newProduct, shipping_fee: e.target.value })} />
               <input placeholder="Location" value={newProduct.location}
                 onChange={e => setNewProduct({ ...newProduct, location: e.target.value })} required />
               <textarea placeholder="Description" value={newProduct.description}
@@ -449,6 +444,12 @@ function App() {
                   <div className="price-row wholesale">
                     <span>Wholesale (min {selectedProduct.wholesale_min_quantity} units)</span>
                     <strong>J${parseFloat(selectedProduct.wholesale_price).toLocaleString()}</strong>
+                  </div>
+                )}
+                {selectedProduct.shipping_fee > 0 && (
+                  <div className="price-row">
+                    <span>🚚 Shipping & handling</span>
+                    <strong>J${parseFloat(selectedProduct.shipping_fee).toLocaleString()}</strong>
                   </div>
                 )}
               </div>
@@ -494,6 +495,9 @@ function App() {
               <input placeholder="Stock quantity" type="number" min="0"
                 value={selectedProduct.quantity}
                 onChange={e => setSelectedProduct({ ...selectedProduct, quantity: e.target.value })} required />
+              <input placeholder="Shipping & handling fee (JMD)" type="number" min="0" step="0.01"
+                value={selectedProduct.shipping_fee || '0'}
+                onChange={e => setSelectedProduct({ ...selectedProduct, shipping_fee: e.target.value })} />
               <input placeholder="Location" value={selectedProduct.location}
                 onChange={e => setSelectedProduct({ ...selectedProduct, location: e.target.value })} required />
               <textarea placeholder="Description" value={selectedProduct.description}
@@ -517,6 +521,7 @@ function App() {
               <input type="number" min="1" max={checkoutProduct.quantity}
                 value={checkoutQty}
                 onChange={e => setCheckoutQty(parseInt(e.target.value) || 1)} required />
+
               {pricePreview && (
                 <div className="price-preview">
                   <div className="price-row">
@@ -529,6 +534,22 @@ function App() {
                     <span>Unit price</span>
                     <strong>J${parseFloat(pricePreview.unit_price).toLocaleString()}</strong>
                   </div>
+                  <div className="price-row">
+                    <span>Subtotal ({checkoutQty} units)</span>
+                    <strong>J${parseFloat(pricePreview.subtotal).toLocaleString()}</strong>
+                  </div>
+                  <div className="price-row">
+                    <span>🚚 Shipping & handling</span>
+                    <strong>J${parseFloat(pricePreview.shipping_fee).toLocaleString()}</strong>
+                  </div>
+                  <div className="price-row">
+                    <span>Tax</span>
+                    <strong style={{ color: 'var(--muted-text)', fontSize: 13 }}>
+                      {pricePreview.tax_rate > 0
+                        ? `J${parseFloat(pricePreview.tax_amount).toLocaleString()} (${(pricePreview.tax_rate * 100).toFixed(0)}%)`
+                        : '— (not yet applied)'}
+                    </strong>
+                  </div>
                   <div className="price-row total">
                     <span>Total</span>
                     <strong>J${parseFloat(pricePreview.total_price).toLocaleString()}</strong>
@@ -540,6 +561,7 @@ function App() {
                   )}
                 </div>
               )}
+
               <label style={{ fontSize: 14, fontWeight: 600, color: 'var(--primary-green)' }}>Payment Method</label>
               <div className="payment-options">
                 {[['paypal','💳 PayPal (Sandbox)'],['wipay','🇯🇲 WiPay (Sandbox)'],['cash','💵 Cash on Delivery']].map(([val, label]) => (
@@ -567,7 +589,10 @@ function App() {
               <p>Your payment was processed successfully.</p>
               <div className="price-preview" style={{ marginTop: 20 }}>
                 <div className="price-row"><span>Order ID</span><strong>#{orderResult.order.id}</strong></div>
-                <div className="price-row"><span>Total paid</span><strong>J${parseFloat(orderResult.order.total_price).toLocaleString()}</strong></div>
+                <div className="price-row"><span>Subtotal</span><strong>J${parseFloat(orderResult.order.subtotal || orderResult.order.total_price).toLocaleString()}</strong></div>
+                <div className="price-row"><span>Shipping</span><strong>J${parseFloat(orderResult.order.shipping_fee || 0).toLocaleString()}</strong></div>
+                <div className="price-row"><span>Tax</span><strong>— (not yet applied)</strong></div>
+                <div className="price-row total"><span>Total paid</span><strong>J${parseFloat(orderResult.order.total_price).toLocaleString()}</strong></div>
                 <div className="price-row"><span>Payment method</span><strong>{checkoutPayment.toUpperCase()}</strong></div>
                 <div className="price-row"><span>Transaction ID</span><strong style={{ fontSize: 12 }}>{orderResult.payment.transaction_id}</strong></div>
               </div>
@@ -579,10 +604,8 @@ function App() {
           </section>
         )}
 
-        {/* MY ORDERS */}
         {isLoggedIn && page === 'orders' && <OrdersPage user={user} />}
 
-        {/* MESSAGES */}
         {isLoggedIn && page === 'messages' && (
           <section className="welcome-screen">
             <div className="welcome-card">
@@ -603,7 +626,6 @@ function App() {
           </section>
         )}
 
-        {/* CHAT */}
         {isLoggedIn && page === 'chat' && (
           <section className="welcome-screen">
             <div className="welcome-card">
@@ -714,11 +736,8 @@ function OrdersPage({ user }) {
                       <option value="cancelled">Cancelled</option>
                     </select>
                   )}
-                  <button
-                    className="btn-danger"
-                    style={{ padding: '4px 12px', fontSize: 13 }}
-                    onClick={() => cancelOrder(o.id)}
-                  >
+                  <button className="btn-danger" style={{ padding: '4px 12px', fontSize: 13 }}
+                    onClick={() => cancelOrder(o.id)}>
                     Cancel
                   </button>
                 </td>

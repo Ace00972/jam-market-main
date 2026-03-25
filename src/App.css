@@ -957,3 +957,346 @@ select {
 .status-badge.shipped  { background: #e2d9f3; color: #4a235a; }
 .status-badge.delivered { background: #d4edda; color: #155724; }
 .status-badge.cancelled { background: #f8d7da; color: #721c24; }
+
+/* ═══════════════════════════════════════════════
+   JAM MARKET — Week 3 CSS additions
+   ADD these to the BOTTOM of your existing App.css
+═══════════════════════════════════════════════ */
+
+/* Error banner */
+.error-banner {
+  background: #fdecea;
+  color: #c0392b;
+  padding: 12px 24px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.error-close {
+  background: none;
+  border: none;
+  color: #c0392b;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 4px;
+  font-size: 16px;
+}
+
+/* Price toggle on marketplace */
+.price-toggle {
+  display: flex;
+  border: 1.5px solid var(--primary-green);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.price-toggle .toggle-active {
+  background: var(--primary-green);
+  color: var(--white);
+  border: none;
+  border-radius: 0;
+  padding: 10px 18px;
+}
+
+.price-toggle .toggle-inactive {
+  background: transparent;
+  color: var(--primary-green);
+  border: none;
+  border-radius: 0;
+  padding: 10px 18px;
+}
+
+.price-toggle .toggle-inactive:hover {
+  background: var(--light-gray);
+  transform: none;
+}
+
+/* Price badge on product cards */
+.price-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--light-gray);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  margin: 10px 0;
+}
+
+.price-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted-text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.price-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary-green);
+}
+
+/* Price breakdown on product detail */
+.price-breakdown {
+  background: var(--light-gray);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin: 16px 0;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--mid-gray);
+  font-size: 15px;
+}
+
+.price-row:last-child { border-bottom: none; }
+
+.price-row.wholesale strong { color: var(--jamaica-gold-dark); }
+
+.price-row.total {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--primary-green);
+}
+
+/* Checkout product info */
+.checkout-product {
+  background: var(--light-gray);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.checkout-product strong {
+  font-size: 16px;
+  color: var(--primary-green);
+}
+
+.checkout-product span {
+  font-size: 13px;
+  color: var(--muted-text);
+}
+
+/* Price preview in checkout */
+.price-preview {
+  background: var(--light-gray);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+}
+
+.wholesale-badge {
+  background: #fff3cd;
+  color: #856404;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 13px;
+}
+
+.retail-badge {
+  background: #d4edda;
+  color: #155724;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 13px;
+}
+
+/* Payment options */
+.payment-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.payment-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  border: 1.5px solid var(--mid-gray);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.payment-option input[type="radio"] {
+  width: auto;
+  margin: 0;
+  accent-color: var(--primary-green);
+}
+
+.payment-option.selected {
+  border-color: var(--primary-green);
+  background: #f0f7f4;
+  color: var(--primary-green);
+}
+
+.payment-option:hover {
+  border-color: var(--primary-green-light);
+  background: #f0f7f4;
+}
+
+/* Status badges on orders table */
+.status-badge {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-badge.paid     { background: #d4edda; color: #155724; }
+.status-badge.unpaid   { background: #fdecea; color: #c0392b; }
+.status-badge.pending  { background: #fff3cd; color: #856404; }
+.status-badge.confirmed { background: #cce5ff; color: #004085; }
+.status-badge.shipped  { background: #e2d9f3; color: #4a235a; }
+.status-badge.delivered { background: #d4edda; color: #155724; }
+.status-badge.cancelled { background: #f8d7da; color: #721c24; }
+
+/* ── PROFILE ICON DROPDOWN ───────────────────── */
+.profile-wrapper {
+  position: relative;
+}
+
+.profile-icon-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1.5px solid rgba(255,255,255,0.3);
+  border-radius: 24px;
+  padding: 6px 12px 6px 6px;
+  cursor: pointer;
+  color: white;
+  transition: all 0.2s;
+}
+
+.profile-icon-btn:hover {
+  border-color: var(--jamaica-gold);
+  background: rgba(255,255,255,0.08);
+  transform: none;
+  box-shadow: none;
+}
+
+.profile-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--jamaica-gold);
+  color: var(--primary-green);
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.profile-avatar.large {
+  width: 44px;
+  height: 44px;
+  font-size: 20px;
+}
+
+.profile-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-caret {
+  font-size: 10px;
+  color: rgba(255,255,255,0.6);
+}
+
+.profile-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  background: white;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  min-width: 220px;
+  z-index: 200;
+  overflow: hidden;
+  border: 1px solid var(--mid-gray);
+}
+
+.profile-dropdown-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--light-gray);
+}
+
+.profile-dropdown-header div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.profile-dropdown-header strong {
+  font-size: 14px;
+  color: var(--dark-text);
+}
+
+.profile-dropdown-header span {
+  font-size: 12px;
+  color: var(--muted-text);
+  text-transform: capitalize;
+}
+
+.profile-dropdown-divider {
+  height: 1px;
+  background: var(--mid-gray);
+}
+
+.profile-dropdown-item {
+  width: 100%;
+  text-align: left;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--dark-text);
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-dropdown-item:hover {
+  background: var(--light-gray);
+  transform: none;
+  box-shadow: none;
+}
+
+.profile-dropdown-item.danger {
+  color: #c0392b;
+}
+
+.profile-dropdown-item.danger:hover {
+  background: #fdecea;
+}
