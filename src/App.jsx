@@ -1,7 +1,7 @@
 import './App.css';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 
-const BASE = 'http://localhost:5000/api';
+const BASE = 'https://jam-market-main-1.onrender.com/api';
 
 async function apiFetch(path, options = {}) {
   const token = localStorage.getItem('jm_token');
