@@ -32,6 +32,7 @@ function App() {
   const [error, setError]                     = useState('');
   const [showWholesale, setShowWholesale]     = useState(false);
   const [profileOpen, setProfileOpen]         = useState(false);
+  const [menuOpen, setMenuOpen]               = useState(false);
   const profileRef                            = useRef(null);
   const [newProduct, setNewProduct]           = useState({
     name: '', price: '', wholesale_price: '', wholesale_min_quantity: '10',
@@ -53,6 +54,9 @@ function App() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  // Close menu on page change
+  useEffect(() => { setMenuOpen(false); }, [page]);
 
   // Restore session
   useEffect(() => {
@@ -119,7 +123,7 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem('jm_token'); localStorage.removeItem('jm_user');
     setUser(null); setIsLoggedIn(false); setProducts([]); setMessages([]);
-    setProfileOpen(false); setPage('home');
+    setProfileOpen(false); setMenuOpen(false); setPage('home');
   };
 
   // ── PRODUCTS ──────────────────────────────────
@@ -183,13 +187,13 @@ function App() {
     try {
       const order = await apiFetch('/orders', {
         method: 'POST',
-        body: JSON.stringify({ product_id: checkoutProduct.id, quantity: checkoutQty, payment_method: checkoutPayment }),
+        body: JSON.stringify({
+          product_id: checkoutProduct.id,
+          quantity: checkoutQty,
+          payment_method: checkoutPayment,
+        }),
       });
-      const payment = await apiFetch('/payments/simulate', {
-        method: 'POST',
-        body: JSON.stringify({ order_id: order.id, gateway: checkoutPayment }),
-      });
-      setOrderResult({ order, payment }); setPage('orderSuccess'); await fetchProducts();
+      setOrderResult(order); setPage('orderSuccess');
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   };
@@ -227,6 +231,8 @@ function App() {
     (p.farmer_name || '').toLowerCase().includes(search.toLowerCase())
   );
 
+  const navTo = (p, cb) => { if (cb) cb(); setPage(p); setMenuOpen(false); };
+
   // ── UI ────────────────────────────────────────
   return (
     <div className="site-wrapper">
@@ -234,12 +240,15 @@ function App() {
       {/* NAVIGATION */}
       <nav className="main-nav">
         <div className="logo" onClick={() => setPage('home')}>JAM MARKET</div>
-        <ul className="nav-links">
+
+        {/* Desktop nav links */}
+        <ul className="nav-links desktop-nav">
           <li onClick={() => setPage('home')}>Home</li>
           <li onClick={() => { fetchProducts(); setPage('products'); }}>Marketplace</li>
           {isLoggedIn && <li onClick={() => setPage('messages')}>Messages</li>}
           {isLoggedIn && <li onClick={() => setPage('orders')}>My Orders</li>}
         </ul>
+
         <div className="auth-buttons">
           {!isLoggedIn ? (
             <>
@@ -247,7 +256,6 @@ function App() {
               <button className="btn-login" onClick={() => setPage('register')}>Register</button>
             </>
           ) : (
-            /* Profile icon dropdown */
             <div className="profile-wrapper" ref={profileRef}>
               <button className="profile-icon-btn" onClick={() => setProfileOpen(o => !o)}>
                 <div className="profile-avatar">
@@ -281,8 +289,32 @@ function App() {
               )}
             </div>
           )}
+
+          {/* Hamburger button - mobile only */}
+          <button className="hamburger-btn" onClick={() => setMenuOpen(o => !o)} aria-label="Menu">
+            <span className={`hamburger-icon ${menuOpen ? 'open' : ''}`}>
+              <span></span><span></span><span></span>
+            </span>
+          </button>
         </div>
       </nav>
+
+      {/* Mobile Menu Overlay */}
+      {menuOpen && (
+        <div className="mobile-menu">
+          <ul className="mobile-nav-links">
+            <li onClick={() => navTo('home')}>🏠 Home</li>
+            <li onClick={() => navTo('products', fetchProducts)}>🛒 Marketplace</li>
+            {isLoggedIn && <li onClick={() => navTo('messages')}>💬 Messages</li>}
+            {isLoggedIn && <li onClick={() => navTo('orders')}>📋 My Orders</li>}
+            {!isLoggedIn && <li onClick={() => navTo('login')}>🔑 Login</li>}
+            {!isLoggedIn && <li onClick={() => navTo('register')}>📝 Register</li>}
+            {isLoggedIn && (
+              <li className="mobile-logout" onClick={handleLogout}>🚪 Logout</li>
+            )}
+          </ul>
+        </div>
+      )}
 
       {error && (
         <div className="error-banner">
@@ -477,7 +509,7 @@ function App() {
           </section>
         )}
 
-        {selectedProduct && page === 'editProduct' && (
+        {isLoggedIn && selectedProduct && page === 'editProduct' && (
           <section className="auth-container">
             <form className="auth-form" onSubmit={handleEditProduct}>
               <h2>Edit Product</h2>
@@ -496,81 +528,69 @@ function App() {
                 value={selectedProduct.quantity}
                 onChange={e => setSelectedProduct({ ...selectedProduct, quantity: e.target.value })} required />
               <input placeholder="Shipping & handling fee (JMD)" type="number" min="0" step="0.01"
-                value={selectedProduct.shipping_fee || '0'}
+                value={selectedProduct.shipping_fee || 0}
                 onChange={e => setSelectedProduct({ ...selectedProduct, shipping_fee: e.target.value })} />
               <input placeholder="Location" value={selectedProduct.location}
                 onChange={e => setSelectedProduct({ ...selectedProduct, location: e.target.value })} required />
               <textarea placeholder="Description" value={selectedProduct.description}
                 onChange={e => setSelectedProduct({ ...selectedProduct, description: e.target.value })} required />
               <button type="submit" disabled={loading}>{loading ? 'Saving…' : 'Save Changes'}</button>
-              <button type="button" className="btn-alt" onClick={() => setPage('products')}>Cancel</button>
+              <button type="button" className="btn-alt" onClick={() => setPage('productDetails')}>Cancel</button>
             </form>
           </section>
         )}
 
-        {/* CHECKOUT */}
         {isLoggedIn && checkoutProduct && page === 'checkout' && (
           <section className="auth-container">
             <form className="auth-form" onSubmit={handlePlaceOrder}>
               <h2>Checkout</h2>
               <div className="checkout-product">
                 <strong>{checkoutProduct.name}</strong>
-                <span>Seller: {checkoutProduct.farmer_name}</span>
+                <span>Seller: {checkoutProduct.farmer_name} · {checkoutProduct.location}</span>
               </div>
-              <label style={{ fontSize: 14, fontWeight: 600, color: 'var(--primary-green)' }}>Quantity</label>
-              <input type="number" min="1" max={checkoutProduct.quantity}
-                value={checkoutQty}
-                onChange={e => setCheckoutQty(parseInt(e.target.value) || 1)} required />
-
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-text)', marginBottom: 6, display: 'block' }}>Quantity</label>
+                <input type="number" min="1" max={checkoutProduct.quantity}
+                  value={checkoutQty} onChange={e => setCheckoutQty(parseInt(e.target.value) || 1)} required />
+              </div>
               {pricePreview && (
                 <div className="price-preview">
-                  <div className="price-row">
-                    <span>Price type</span>
-                    <strong className={pricePreview.price_type === 'wholesale' ? 'wholesale-badge' : 'retail-badge'}>
-                      {pricePreview.price_type === 'wholesale' ? '🏷 Wholesale' : '🛒 Retail'}
-                    </strong>
-                  </div>
                   <div className="price-row">
                     <span>Unit price</span>
                     <strong>J${parseFloat(pricePreview.unit_price).toLocaleString()}</strong>
                   </div>
                   <div className="price-row">
-                    <span>Subtotal ({checkoutQty} units)</span>
+                    <span>Subtotal</span>
                     <strong>J${parseFloat(pricePreview.subtotal).toLocaleString()}</strong>
                   </div>
-                  <div className="price-row">
-                    <span>🚚 Shipping & handling</span>
-                    <strong>J${parseFloat(pricePreview.shipping_fee).toLocaleString()}</strong>
-                  </div>
-                  <div className="price-row">
-                    <span>Tax</span>
-                    <strong style={{ color: 'var(--muted-text)', fontSize: 13 }}>
-                      {pricePreview.tax_rate > 0
-                        ? `J${parseFloat(pricePreview.tax_amount).toLocaleString()} (${(pricePreview.tax_rate * 100).toFixed(0)}%)`
-                        : '— (not yet applied)'}
-                    </strong>
-                  </div>
+                  {pricePreview.shipping_fee > 0 && (
+                    <div className="price-row">
+                      <span>🚚 Shipping</span>
+                      <strong>J${parseFloat(pricePreview.shipping_fee).toLocaleString()}</strong>
+                    </div>
+                  )}
                   <div className="price-row total">
                     <span>Total</span>
                     <strong>J${parseFloat(pricePreview.total_price).toLocaleString()}</strong>
                   </div>
-                  {pricePreview.price_type === 'retail' && pricePreview.wholesale_price && (
-                    <p style={{ fontSize: 12, color: 'var(--muted-text)', marginTop: 6 }}>
-                      💡 Order {pricePreview.wholesale_min_quantity}+ units to get wholesale price of J${parseFloat(pricePreview.wholesale_price).toLocaleString()}
-                    </p>
-                  )}
+                  <div style={{ marginTop: 8 }}>
+                    <span className={checkoutQty >= (checkoutProduct.wholesale_min_quantity || 10) && checkoutProduct.wholesale_price ? 'wholesale-badge' : 'retail-badge'}>
+                      {checkoutQty >= (checkoutProduct.wholesale_min_quantity || 10) && checkoutProduct.wholesale_price ? 'Wholesale price applied' : 'Retail price'}
+                    </span>
+                  </div>
                 </div>
               )}
-
-              <label style={{ fontSize: 14, fontWeight: 600, color: 'var(--primary-green)' }}>Payment Method</label>
-              <div className="payment-options">
-                {[['paypal','💳 PayPal (Sandbox)'],['wipay','🇯🇲 WiPay (Sandbox)'],['cash','💵 Cash on Delivery']].map(([val, label]) => (
-                  <label key={val} className={`payment-option ${checkoutPayment === val ? 'selected' : ''}`}>
-                    <input type="radio" name="payment" value={val}
-                      checked={checkoutPayment === val} onChange={() => setCheckoutPayment(val)} />
-                    <span>{label}</span>
-                  </label>
-                ))}
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-text)', marginBottom: 8, display: 'block' }}>Payment Method</label>
+                <div className="payment-options">
+                  {[['paypal','💳 PayPal'],['bank_transfer','🏦 Bank Transfer'],['cash_on_delivery','💵 Cash on Delivery']].map(([val, label]) => (
+                    <label key={val} className={`payment-option ${checkoutPayment === val ? 'selected' : ''}`}>
+                      <input type="radio" name="payment" value={val}
+                        checked={checkoutPayment === val} onChange={() => setCheckoutPayment(val)} />
+                      <span>{label}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
               <button type="submit" disabled={loading}>
                 {loading ? 'Processing…' : `Pay J$${pricePreview ? parseFloat(pricePreview.total_price).toLocaleString() : '...'}`}
@@ -580,7 +600,6 @@ function App() {
           </section>
         )}
 
-        {/* ORDER SUCCESS */}
         {page === 'orderSuccess' && orderResult && (
           <section className="welcome-screen">
             <div className="welcome-card">
@@ -591,7 +610,6 @@ function App() {
                 <div className="price-row"><span>Order ID</span><strong>#{orderResult.order.id}</strong></div>
                 <div className="price-row"><span>Subtotal</span><strong>J${parseFloat(orderResult.order.subtotal || orderResult.order.total_price).toLocaleString()}</strong></div>
                 <div className="price-row"><span>Shipping</span><strong>J${parseFloat(orderResult.order.shipping_fee || 0).toLocaleString()}</strong></div>
-                <div className="price-row"><span>Tax</span><strong>— (not yet applied)</strong></div>
                 <div className="price-row total"><span>Total paid</span><strong>J${parseFloat(orderResult.order.total_price).toLocaleString()}</strong></div>
                 <div className="price-row"><span>Payment method</span><strong>{checkoutPayment.toUpperCase()}</strong></div>
                 <div className="price-row"><span>Transaction ID</span><strong style={{ fontSize: 12 }}>{orderResult.payment.transaction_id}</strong></div>
@@ -706,45 +724,47 @@ function OrdersPage({ user }) {
       {loading && <p>Loading orders…</p>}
       {!loading && orders.length === 0 && <p style={{ color: 'var(--muted-text)' }}>No orders yet.</p>}
       {orders.length > 0 && (
-        <table className="order-table">
-          <thead>
-            <tr>
-              <th>#</th><th>Product</th><th>Qty</th><th>Total</th>
-              <th>Payment</th><th>Status</th>
-              {user?.role === 'farmer' && <th>Customer</th>}
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map(o => (
-              <tr key={o.id}>
-                <td>#{o.id}</td>
-                <td>{o.product_name}</td>
-                <td>{o.quantity}</td>
-                <td>J${parseFloat(o.total_price).toLocaleString()}</td>
-                <td><span className={`status-badge ${o.payment_status}`}>{o.payment_status}</span></td>
-                <td><span className={`status-badge ${o.status}`}>{o.status}</span></td>
-                {user?.role === 'farmer' && <td>{o.customer_name}</td>}
-                <td style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  {user?.role === 'farmer' && (
-                    <select value={o.status} onChange={e => updateStatus(o.id, e.target.value)}
-                      style={{ padding: '4px 8px', fontSize: 13 }}>
-                      <option value="pending">Pending</option>
-                      <option value="confirmed">Confirmed</option>
-                      <option value="shipped">Shipped</option>
-                      <option value="delivered">Delivered</option>
-                      <option value="cancelled">Cancelled</option>
-                    </select>
-                  )}
-                  <button className="btn-danger" style={{ padding: '4px 12px', fontSize: 13 }}
-                    onClick={() => cancelOrder(o.id)}>
-                    Cancel
-                  </button>
-                </td>
+        <div className="order-table-wrapper">
+          <table className="order-table">
+            <thead>
+              <tr>
+                <th>#</th><th>Product</th><th>Qty</th><th>Total</th>
+                <th>Payment</th><th>Status</th>
+                {user?.role === 'farmer' && <th>Customer</th>}
+                <th>Action</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {orders.map(o => (
+                <tr key={o.id}>
+                  <td>#{o.id}</td>
+                  <td>{o.product_name}</td>
+                  <td>{o.quantity}</td>
+                  <td>J${parseFloat(o.total_price).toLocaleString()}</td>
+                  <td><span className={`status-badge ${o.payment_status}`}>{o.payment_status}</span></td>
+                  <td><span className={`status-badge ${o.status}`}>{o.status}</span></td>
+                  {user?.role === 'farmer' && <td>{o.customer_name}</td>}
+                  <td style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    {user?.role === 'farmer' && (
+                      <select value={o.status} onChange={e => updateStatus(o.id, e.target.value)}
+                        style={{ padding: '4px 8px', fontSize: 13 }}>
+                        <option value="pending">Pending</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="shipped">Shipped</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    )}
+                    <button className="btn-danger" style={{ padding: '4px 12px', fontSize: 13 }}
+                      onClick={() => cancelOrder(o.id)}>
+                      Cancel
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

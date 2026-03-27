@@ -1259,3 +1259,111 @@ select {
     font-size: 0.78rem;
   }
 }
+
+/* =============================================
+   HAMBURGER MENU
+   ============================================= */
+.hamburger-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.hamburger-icon {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 24px;
+}
+
+.hamburger-icon span {
+  display: block;
+  height: 2px;
+  width: 100%;
+  background: white;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+.hamburger-icon.open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.hamburger-icon.open span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger-icon.open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* Mobile full screen menu */
+.mobile-menu {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--primary-green);
+  z-index: 99;
+  padding: 24px 20px;
+  animation: slideDown 0.25s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.mobile-nav-links {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mobile-nav-links li {
+  padding: 16px 20px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.9);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s;
+}
+
+.mobile-nav-links li:hover {
+  background: rgba(255,255,255,0.1);
+  color: var(--jamaica-gold);
+}
+
+.mobile-nav-links li.mobile-logout {
+  color: #ff6b6b;
+  margin-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-top: 24px;
+}
+
+/* Show hamburger on mobile, hide desktop nav */
+@media (max-width: 640px) {
+  .hamburger-btn {
+    display: flex;
+  }
+
+  .desktop-nav {
+    display: none !important;
+  }
+
+  /* Hide login/register buttons on mobile - use menu instead */
+  .auth-buttons > .btn-login {
+    display: none;
+  }
+
+  /* But keep profile icon visible */
+  .auth-buttons > .profile-wrapper {
+    display: flex;
+  }
+}
