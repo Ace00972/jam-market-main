@@ -20,7 +20,7 @@ const PORT = process.env.PORT || 5000;
 app.use(helmet());
 app.use(cors({
   origin: [
-    'https://endearing-mooncake-10eefd.netlify.app',
+    'https://jam-market-main.vercel.app/',
     'http://localhost:5173',
     'http://localhost:3000',
   ],
