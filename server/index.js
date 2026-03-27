@@ -19,12 +19,8 @@ const PORT = process.env.PORT || 5000;
 // ── SECURITY MIDDLEWARE ───────────────────────
 app.use(helmet());
 app.use(cors({
-  origin: [
-    'https://jam-market-main.vercel.app/',
-    'http://localhost:5173',
-    'http://localhost:3000',
-  ],
-  credentials: true,
+  origin: '*',
+  credentials: false,
 }));
 app.use(express.json());
 
