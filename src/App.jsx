@@ -628,8 +628,12 @@ function App() {
                       <strong>J${parseFloat(pricePreview.shipping_fee).toLocaleString()}</strong>
                     </div>
                   )}
+                  <div className="price-row">
+                    <span>🧾 GCT (15%)</span>
+                    <strong>J${parseFloat(pricePreview.tax_amount || 0).toLocaleString()}</strong>
+                  </div>
                   <div className="price-row total">
-                    <span>Total</span>
+                    <span>Total (incl. GCT)</span>
                     <strong>J${parseFloat(pricePreview.total_price).toLocaleString()}</strong>
                   </div>
                   <div style={{ marginTop: 8 }}>
@@ -682,15 +686,36 @@ function App() {
               <div className="price-preview" style={{ marginTop: 20 }}>
                 <div className="price-row"><span>Order ID</span><strong>#{orderResult.order.id}</strong></div>
                 <div className="price-row"><span>Subtotal</span><strong>J${parseFloat(orderResult.order.subtotal || orderResult.order.total_price).toLocaleString()}</strong></div>
-                <div className="price-row"><span>Shipping</span><strong>J${parseFloat(orderResult.order.shipping_fee || 0).toLocaleString()}</strong></div>
+                <div className="price-row"><span>🚗 Shipping</span><strong>J${parseFloat(orderResult.order.shipping_fee || 0).toLocaleString()}</strong></div>
+                <div className="price-row"><span>🧾 GCT (15%)</span><strong>J${parseFloat(orderResult.order.tax_amount || 0).toLocaleString()}</strong></div>
                 <div className="price-row total"><span>Total paid</span><strong>J${parseFloat(orderResult.order.total_price).toLocaleString()}</strong></div>
-                <div className="price-row"><span>Payment method</span><strong>{checkoutPayment.toUpperCase()}</strong></div>
+                <div className="price-row"><span>Payment method</span><strong>{checkoutPayment.replace(/_/g, ' ').toUpperCase()}</strong></div>
                 <div className="price-row"><span>Transaction ID</span><strong style={{ fontSize: 12 }}>{orderResult.payment.transaction_id}</strong></div>
               </div>
 
-              {/* Third party shipping reminder on success */}
+              {/* Bank transfer details */}
+              {orderResult.bank_details && (
+                <div className="shipping-info-box" style={{ marginTop: 16 }}>
+                  <p>🏦 <strong>Bank Transfer Details</strong></p>
+                  <p>Bank: <strong>{orderResult.bank_details.bank_name}</strong></p>
+                  <p>Account Name: <strong>{orderResult.bank_details.account_name}</strong></p>
+                  <p>Account Number: <strong>{orderResult.bank_details.account_number}</strong></p>
+                  <p>Reference: <strong>{orderResult.bank_details.reference}</strong></p>
+                  <p style={{ color: '#c0392b', fontWeight: 600 }}>⚠️ Use the reference number when making your transfer!</p>
+                </div>
+              )}
+
+              {/* Cash on delivery notice */}
+              {checkoutPayment === 'cash_on_delivery' && (
+                <div className="shipping-info-box" style={{ marginTop: 16 }}>
+                  <p>💵 <strong>Cash on Delivery</strong></p>
+                  <p>Please have <strong>J${parseFloat(orderResult.order.total_price).toLocaleString()}</strong> ready when your order arrives.</p>
+                </div>
+              )}
+
+              {/* Third party shipping reminder */}
               {orderResult.delivery_type === 'third_party' && getShippingCompany(orderResult.shipping_company) && (
-                <div className="shipping-info-box" style={{ marginTop: 20 }}>
+                <div className="shipping-info-box" style={{ marginTop: 16 }}>
                   <p>📦 Don't forget to arrange delivery with <strong>{getShippingCompany(orderResult.shipping_company).label}</strong>!</p>
                   <a href={getShippingCompany(orderResult.shipping_company).url}
                     target="_blank" rel="noopener noreferrer"

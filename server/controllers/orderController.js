@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════
 const pool = require('../db');
 
-const TAX_RATE = 0; // set to 0.15 for 15% GCT when ready
+const TAX_RATE = 0.15; // 15% GCT (Jamaica standard)
 
 const placeOrder = async (req, res) => {
   try {
@@ -22,27 +22,40 @@ const placeOrder = async (req, res) => {
 
     const subtotal     = unit_price * quantity;
     const shipping_fee = product.delivery_type === 'own' ? (parseFloat(product.shipping_fee) || 0) : 0;
-    const tax_amount   = subtotal * TAX_RATE;
+    const tax_amount   = (subtotal + shipping_fee) * TAX_RATE;
     const total_price  = subtotal + shipping_fee + tax_amount;
 
+    // Payment status and order status based on method
+    const payment_status = 'unpaid';
+    const order_status   = payment_method === 'cash_on_delivery' ? 'confirmed' : 'pending';
+    const transaction_id = `${(payment_method || 'unknown').toUpperCase()}_${Date.now()}_${product_id}`;
+
     const [result] = await pool.query(
-      `INSERT INTO orders (customer_id, product_id, quantity, total_price, status, payment_method, payment_status)
-       VALUES (?,?,?,?,?,?,?)`,
-      [req.user.id, product_id, quantity, total_price, 'pending', payment_method || 'pending', 'unpaid']
+      `INSERT INTO orders (customer_id, product_id, quantity, total_price, status, payment_method, payment_status, transaction_id)
+       VALUES (?,?,?,?,?,?,?,?)`,
+      [req.user.id, product_id, quantity, total_price, order_status, payment_method || 'pending', payment_status, transaction_id]
     );
 
     await pool.query('UPDATE products SET quantity = quantity - ? WHERE id=?', [quantity, product_id]);
 
+    // Bank transfer details if needed
+    const bank_details = payment_method === 'bank_transfer' ? {
+      bank_name: process.env.BANK_NAME || 'National Commercial Bank (NCB)',
+      account_name: process.env.BANK_ACCOUNT_NAME || 'Jam Market Ltd',
+      account_number: process.env.BANK_ACCOUNT_NUMBER || '1234567890',
+      reference: `ORDER-${result.insertId}`,
+    } : null;
+
     res.status(201).json({
       order: {
-        id: result.insertId, subtotal, shipping_fee, tax_amount, total_price,
-        unit_price, price_type, status: 'pending', payment_status: 'unpaid',
+        id: result.insertId, subtotal, shipping_fee,
+        tax_amount, tax_rate: TAX_RATE, total_price,
+        unit_price, price_type, status: order_status, payment_status,
       },
-      payment: {
-        transaction_id: `TXN-${Date.now()}-${result.insertId}`,
-      },
+      payment: { transaction_id },
       delivery_type: product.delivery_type,
       shipping_company: product.shipping_company,
+      bank_details,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -110,7 +123,7 @@ const getPrice = async (req, res) => {
 
     const subtotal     = unit_price * quantity;
     const shipping_fee = product.delivery_type === 'own' ? (parseFloat(product.shipping_fee) || 0) : 0;
-    const tax_amount   = subtotal * TAX_RATE;
+    const tax_amount   = (subtotal + shipping_fee) * TAX_RATE;
     const total_price  = subtotal + shipping_fee + tax_amount;
 
     res.json({
