@@ -35,13 +35,18 @@ const productRules = [
   body('wholesale_price').optional().isFloat({ min: 0 }).withMessage('Valid wholesale price required'),
   body('wholesale_min_quantity').optional().isInt({ min: 1 }).withMessage('Valid minimum quantity required'),
   body('quantity').optional().isInt({ min: 0 }).withMessage('Valid quantity required'),
+  body('delivery_type').optional().isIn(['own', 'third_party']).withMessage('Invalid delivery type'),
+  body('shipping_company').optional({ nullable: true }).isString().withMessage('Invalid shipping company'),
+  body('shipping_fee').optional().isFloat({ min: 0 }).withMessage('Valid shipping fee required'),
 ];
 
 // Order validation rules
 const orderRules = [
   body('product_id').isInt().withMessage('Valid product ID required'),
   body('quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
-  body('payment_method').isIn(['paypal', 'wipay', 'cash']).withMessage('Invalid payment method'),
+  body('payment_method')
+    .isIn(['paypal', 'wipay', 'bank_transfer', 'cash_on_delivery', 'cash'])
+    .withMessage('Invalid payment method'),
 ];
 
 // Message validation rules
