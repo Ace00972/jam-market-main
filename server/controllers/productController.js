@@ -1,4 +1,4 @@
-// ═══════════════════════════════════════════════
+/// ═══════════════════════════════════════════════
 //  JAM MARKET — server/controllers/productController.js
 // ═══════════════════════════════════════════════
 const pool = require('../db');
@@ -19,15 +19,32 @@ const getAllProducts = async (req, res) => {
 
 const createProduct = async (req, res) => {
   try {
-    const { name, description, price, wholesale_price, wholesale_min_quantity, quantity, location, shipping_fee } = req.body;
+    const {
+      name, description, price, wholesale_price, wholesale_min_quantity,
+      quantity, location, shipping_fee, delivery_type, shipping_company
+    } = req.body;
+
+    const deliveryType    = delivery_type || 'own';
+    const shippingCompany = deliveryType === 'third_party' ? (shipping_company || null) : null;
+    const shippingFee     = deliveryType === 'own' ? (parseFloat(shipping_fee) || 0) : 0;
 
     const [result] = await pool.query(
       `INSERT INTO products 
-       (farmer_id, name, description, price, wholesale_price, wholesale_min_quantity, quantity, location, shipping_fee) 
-       VALUES (?,?,?,?,?,?,?,?,?)`,
-      [req.user.id, name, description || '', price, wholesale_price || null, wholesale_min_quantity || 10, quantity || 1, location || null, shipping_fee || 0]
+       (farmer_id, name, description, price, wholesale_price, wholesale_min_quantity,
+        quantity, location, shipping_fee, delivery_type, shipping_company) 
+       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+      [
+        req.user.id, name, description || '', price,
+        wholesale_price || null, wholesale_min_quantity || 10,
+        quantity || 1, location || null, shippingFee,
+        deliveryType, shippingCompany
+      ]
     );
-    res.status(201).json({ id: result.insertId, name, price, wholesale_price, description, location, shipping_fee, farmer_id: req.user.id });
+    res.status(201).json({
+      id: result.insertId, name, price, wholesale_price, description,
+      location, shipping_fee: shippingFee, delivery_type: deliveryType,
+      shipping_company: shippingCompany, farmer_id: req.user.id
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -35,12 +52,26 @@ const createProduct = async (req, res) => {
 
 const updateProduct = async (req, res) => {
   try {
-    const { name, description, price, wholesale_price, wholesale_min_quantity, quantity, location, shipping_fee } = req.body;
+    const {
+      name, description, price, wholesale_price, wholesale_min_quantity,
+      quantity, location, shipping_fee, delivery_type, shipping_company
+    } = req.body;
+
+    const deliveryType    = delivery_type || 'own';
+    const shippingCompany = deliveryType === 'third_party' ? (shipping_company || null) : null;
+    const shippingFee     = deliveryType === 'own' ? (parseFloat(shipping_fee) || 0) : 0;
+
     const [result] = await pool.query(
       `UPDATE products 
-       SET name=?, description=?, price=?, wholesale_price=?, wholesale_min_quantity=?, quantity=?, location=?, shipping_fee=?
+       SET name=?, description=?, price=?, wholesale_price=?, wholesale_min_quantity=?,
+           quantity=?, location=?, shipping_fee=?, delivery_type=?, shipping_company=?
        WHERE id=? AND farmer_id=?`,
-      [name, description, price, wholesale_price || null, wholesale_min_quantity || 10, quantity, location, shipping_fee || 0, req.params.id, req.user.id]
+      [
+        name, description, price, wholesale_price || null,
+        wholesale_min_quantity || 10, quantity, location,
+        shippingFee, deliveryType, shippingCompany,
+        req.params.id, req.user.id
+      ]
     );
     if (result.affectedRows === 0)
       return res.status(404).json({ message: 'Product not found or not yours' });

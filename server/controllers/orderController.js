@@ -21,7 +21,7 @@ const placeOrder = async (req, res) => {
     }
 
     const subtotal     = unit_price * quantity;
-    const shipping_fee = parseFloat(product.shipping_fee) || 0;
+    const shipping_fee = product.delivery_type === 'own' ? (parseFloat(product.shipping_fee) || 0) : 0;
     const tax_amount   = subtotal * TAX_RATE;
     const total_price  = subtotal + shipping_fee + tax_amount;
 
@@ -34,8 +34,15 @@ const placeOrder = async (req, res) => {
     await pool.query('UPDATE products SET quantity = quantity - ? WHERE id=?', [quantity, product_id]);
 
     res.status(201).json({
-      id: result.insertId, subtotal, shipping_fee, tax_amount, total_price,
-      unit_price, price_type, status: 'pending', payment_status: 'unpaid',
+      order: {
+        id: result.insertId, subtotal, shipping_fee, tax_amount, total_price,
+        unit_price, price_type, status: 'pending', payment_status: 'unpaid',
+      },
+      payment: {
+        transaction_id: `TXN-${Date.now()}-${result.insertId}`,
+      },
+      delivery_type: product.delivery_type,
+      shipping_company: product.shipping_company,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -46,13 +53,15 @@ const getMyOrders = async (req, res) => {
   try {
     let query, params;
     if (req.user.role === 'farmer') {
-      query = `SELECT o.*, p.name AS product_name, u.name AS customer_name
+      query = `SELECT o.*, p.name AS product_name, p.delivery_type, p.shipping_company,
+               u.name AS customer_name
                FROM orders o JOIN products p ON o.product_id = p.id
                JOIN users u ON o.customer_id = u.id
                WHERE p.farmer_id = ? ORDER BY o.created_at DESC`;
       params = [req.user.id];
     } else {
-      query = `SELECT o.*, p.name AS product_name, u.name AS farmer_name
+      query = `SELECT o.*, p.name AS product_name, p.delivery_type, p.shipping_company,
+               u.name AS farmer_name
                FROM orders o JOIN products p ON o.product_id = p.id
                JOIN users u ON p.farmer_id = u.id
                WHERE o.customer_id = ? ORDER BY o.created_at DESC`;
@@ -100,7 +109,7 @@ const getPrice = async (req, res) => {
     }
 
     const subtotal     = unit_price * quantity;
-    const shipping_fee = parseFloat(product.shipping_fee) || 0;
+    const shipping_fee = product.delivery_type === 'own' ? (parseFloat(product.shipping_fee) || 0) : 0;
     const tax_amount   = subtotal * TAX_RATE;
     const total_price  = subtotal + shipping_fee + tax_amount;
 
@@ -110,6 +119,8 @@ const getPrice = async (req, res) => {
       retail_price: product.price,
       wholesale_price: product.wholesale_price,
       wholesale_min_quantity: product.wholesale_min_quantity,
+      delivery_type: product.delivery_type,
+      shipping_company: product.shipping_company,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

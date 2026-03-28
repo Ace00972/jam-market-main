@@ -3,6 +3,17 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 const BASE = 'https://jam-market-main-1.onrender.com/api';
 
+const SHIPPING_COMPANIES = [
+  { value: 'knutsford', label: 'Knutsford Express', url: 'https://www.knutsfordexpress.com' },
+  { value: 'zipmail',   label: 'Zipmail',            url: 'https://www.zipmail.com.jm' },
+  { value: 'tara',      label: 'Tara Courier',       url: 'https://www.taracourier.com' },
+  { value: 'jamex',     label: 'JAMEX',              url: 'https://www.jamex.com.jm' },
+];
+
+function getShippingCompany(key) {
+  return SHIPPING_COMPANIES.find(c => c.value === key) || null;
+}
+
 async function apiFetch(path, options = {}) {
   const token = localStorage.getItem('jm_token');
   const res = await fetch(`${BASE}${path}`, {
@@ -36,7 +47,8 @@ function App() {
   const profileRef                            = useRef(null);
   const [newProduct, setNewProduct]           = useState({
     name: '', price: '', wholesale_price: '', wholesale_min_quantity: '10',
-    description: '', location: '', quantity: '1', shipping_fee: '0'
+    description: '', location: '', quantity: '1', shipping_fee: '0',
+    delivery_type: 'own', shipping_company: ''
   });
 
   const [checkoutProduct, setCheckoutProduct] = useState(null);
@@ -45,7 +57,6 @@ function App() {
   const [pricePreview, setPricePreview]       = useState(null);
   const [orderResult, setOrderResult]         = useState(null);
 
-  // Close profile dropdown when clicking outside
   useEffect(() => {
     const handler = (e) => {
       if (profileRef.current && !profileRef.current.contains(e.target))
@@ -55,10 +66,8 @@ function App() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Close menu on page change
   useEffect(() => { setMenuOpen(false); }, [page]);
 
-  // Restore session
   useEffect(() => {
     const token = localStorage.getItem('jm_token');
     const savedUser = localStorage.getItem('jm_user');
@@ -138,10 +147,12 @@ function App() {
           wholesale_price: newProduct.wholesale_price ? parseFloat(newProduct.wholesale_price) : undefined,
           wholesale_min_quantity: parseInt(newProduct.wholesale_min_quantity) || 10,
           quantity: parseInt(newProduct.quantity) || 1,
-          shipping_fee: parseFloat(newProduct.shipping_fee) || 0,
+          shipping_fee: newProduct.delivery_type === 'own' ? (parseFloat(newProduct.shipping_fee) || 0) : 0,
+          delivery_type: newProduct.delivery_type,
+          shipping_company: newProduct.delivery_type === 'third_party' ? newProduct.shipping_company : null,
         }),
       });
-      setNewProduct({ name: '', price: '', wholesale_price: '', wholesale_min_quantity: '10', description: '', location: '', quantity: '1', shipping_fee: '0' });
+      setNewProduct({ name: '', price: '', wholesale_price: '', wholesale_min_quantity: '10', description: '', location: '', quantity: '1', shipping_fee: '0', delivery_type: 'own', shipping_company: '' });
       await fetchProducts(); setPage('products');
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
@@ -167,7 +178,9 @@ function App() {
           description: selectedProduct.description,
           location: selectedProduct.location,
           quantity: parseInt(selectedProduct.quantity) || 1,
-          shipping_fee: parseFloat(selectedProduct.shipping_fee) || 0,
+          shipping_fee: selectedProduct.delivery_type === 'own' ? (parseFloat(selectedProduct.shipping_fee) || 0) : 0,
+          delivery_type: selectedProduct.delivery_type || 'own',
+          shipping_company: selectedProduct.delivery_type === 'third_party' ? selectedProduct.shipping_company : null,
         }),
       });
       await fetchProducts(); setSelectedProduct(null); setPage('products');
@@ -233,6 +246,49 @@ function App() {
 
   const navTo = (p, cb) => { if (cb) cb(); setPage(p); setMenuOpen(false); };
 
+  // ── DELIVERY SECTION (reusable for add/edit forms) ──
+  const DeliveryFields = ({ product, onChange }) => (
+    <div className="delivery-section">
+      <label className="delivery-label">🚚 Delivery Method</label>
+      <div className="delivery-options">
+        <label className={`delivery-option ${product.delivery_type === 'own' ? 'selected' : ''}`}>
+          <input type="radio" name="delivery_type" value="own"
+            checked={product.delivery_type === 'own'}
+            onChange={() => onChange({ ...product, delivery_type: 'own', shipping_company: '' })} />
+          <div>
+            <strong>My Own Delivery</strong>
+            <span>I will handle delivery myself</span>
+          </div>
+        </label>
+        <label className={`delivery-option ${product.delivery_type === 'third_party' ? 'selected' : ''}`}>
+          <input type="radio" name="delivery_type" value="third_party"
+            checked={product.delivery_type === 'third_party'}
+            onChange={() => onChange({ ...product, delivery_type: 'third_party', shipping_fee: '0' })} />
+          <div>
+            <strong>Third Party Shipping</strong>
+            <span>Customer arranges with shipping company</span>
+          </div>
+        </label>
+      </div>
+
+      {product.delivery_type === 'own' && (
+        <input placeholder="Your delivery/shipping fee (JMD)" type="number" min="0" step="0.01"
+          value={product.shipping_fee}
+          onChange={e => onChange({ ...product, shipping_fee: e.target.value })} />
+      )}
+
+      {product.delivery_type === 'third_party' && (
+        <select value={product.shipping_company}
+          onChange={e => onChange({ ...product, shipping_company: e.target.value })} required>
+          <option value="">Select a shipping company</option>
+          {SHIPPING_COMPANIES.map(c => (
+            <option key={c.value} value={c.value}>{c.label}</option>
+          ))}
+        </select>
+      )}
+    </div>
+  );
+
   // ── UI ────────────────────────────────────────
   return (
     <div className="site-wrapper">
@@ -241,7 +297,6 @@ function App() {
       <nav className="main-nav">
         <div className="logo" onClick={() => setPage('home')}>JAM MARKET</div>
 
-        {/* Desktop nav links */}
         <ul className="nav-links desktop-nav">
           <li onClick={() => setPage('home')}>Home</li>
           <li onClick={() => { fetchProducts(); setPage('products'); }}>Marketplace</li>
@@ -258,9 +313,7 @@ function App() {
           ) : (
             <div className="profile-wrapper" ref={profileRef}>
               <button className="profile-icon-btn" onClick={() => setProfileOpen(o => !o)}>
-                <div className="profile-avatar">
-                  {user?.name?.charAt(0).toUpperCase()}
-                </div>
+                <div className="profile-avatar">{user?.name?.charAt(0).toUpperCase()}</div>
                 <span className="profile-name">{user?.name}</span>
                 <span className="profile-caret">{profileOpen ? '▲' : '▼'}</span>
               </button>
@@ -275,22 +328,14 @@ function App() {
                     </div>
                   </div>
                   <div className="profile-dropdown-divider" />
-                  <button className="profile-dropdown-item" onClick={() => { setPage('orders'); setProfileOpen(false); }}>
-                    📋 My Orders
-                  </button>
-                  <button className="profile-dropdown-item" onClick={() => { setPage('messages'); setProfileOpen(false); }}>
-                    💬 Messages
-                  </button>
+                  <button className="profile-dropdown-item" onClick={() => { setPage('orders'); setProfileOpen(false); }}>📋 My Orders</button>
+                  <button className="profile-dropdown-item" onClick={() => { setPage('messages'); setProfileOpen(false); }}>💬 Messages</button>
                   <div className="profile-dropdown-divider" />
-                  <button className="profile-dropdown-item danger" onClick={handleLogout}>
-                    🚪 Logout
-                  </button>
+                  <button className="profile-dropdown-item danger" onClick={handleLogout}>🚪 Logout</button>
                 </div>
               )}
             </div>
           )}
-
-          {/* Hamburger button - mobile only */}
           <button className="hamburger-btn" onClick={() => setMenuOpen(o => !o)} aria-label="Menu">
             <span className={`hamburger-icon ${menuOpen ? 'open' : ''}`}>
               <span></span><span></span><span></span>
@@ -299,7 +344,6 @@ function App() {
         </div>
       </nav>
 
-      {/* Mobile Menu Overlay */}
       {menuOpen && (
         <div className="mobile-menu">
           <ul className="mobile-nav-links">
@@ -309,9 +353,7 @@ function App() {
             {isLoggedIn && <li onClick={() => navTo('orders')}>📋 My Orders</li>}
             {!isLoggedIn && <li onClick={() => navTo('login')}>🔑 Login</li>}
             {!isLoggedIn && <li onClick={() => navTo('register')}>📝 Register</li>}
-            {isLoggedIn && (
-              <li className="mobile-logout" onClick={handleLogout}>🚪 Logout</li>
-            )}
+            {isLoggedIn && <li className="mobile-logout" onClick={handleLogout}>🚪 Logout</li>}
           </ul>
         </div>
       )}
@@ -418,11 +460,13 @@ function App() {
                     )}
                     <p><strong>Seller:</strong> {prod.farmer_name}</p>
                     <p><strong>Location:</strong> {prod.location}</p>
-                    {prod.shipping_fee > 0 && (
-                      <p style={{ fontSize: '12px', color: 'var(--muted-text)' }}>
-                        🚚 Shipping: J${parseFloat(prod.shipping_fee).toLocaleString()}
-                      </p>
-                    )}
+                    <p style={{ fontSize: '12px', color: 'var(--muted-text)', marginTop: 4 }}>
+                      {prod.delivery_type === 'third_party'
+                        ? `📦 Ships via ${getShippingCompany(prod.shipping_company)?.label || 'third party'}`
+                        : prod.shipping_fee > 0
+                          ? `🚗 Delivery: J${parseFloat(prod.shipping_fee).toLocaleString()}`
+                          : '🚗 Free delivery'}
+                    </p>
                   </div>
                 );
               })}
@@ -449,13 +493,11 @@ function App() {
               <input placeholder="Stock quantity" type="number" min="1"
                 value={newProduct.quantity}
                 onChange={e => setNewProduct({ ...newProduct, quantity: e.target.value })} required />
-              <input placeholder="Shipping & handling fee (JMD)" type="number" min="0" step="0.01"
-                value={newProduct.shipping_fee}
-                onChange={e => setNewProduct({ ...newProduct, shipping_fee: e.target.value })} />
               <input placeholder="Location" value={newProduct.location}
                 onChange={e => setNewProduct({ ...newProduct, location: e.target.value })} required />
               <textarea placeholder="Description" value={newProduct.description}
                 onChange={e => setNewProduct({ ...newProduct, description: e.target.value })} required />
+              <DeliveryFields product={newProduct} onChange={setNewProduct} />
               <button type="submit" disabled={loading}>{loading ? 'Adding…' : 'Add Product'}</button>
               <button type="button" className="btn-alt" onClick={() => setPage('products')}>Cancel</button>
             </form>
@@ -478,16 +520,34 @@ function App() {
                     <strong>J${parseFloat(selectedProduct.wholesale_price).toLocaleString()}</strong>
                   </div>
                 )}
-                {selectedProduct.shipping_fee > 0 && (
-                  <div className="price-row">
-                    <span>🚚 Shipping & handling</span>
-                    <strong>J${parseFloat(selectedProduct.shipping_fee).toLocaleString()}</strong>
-                  </div>
-                )}
+                <div className="price-row">
+                  <span>🚚 Delivery</span>
+                  <strong>
+                    {selectedProduct.delivery_type === 'third_party'
+                      ? `${getShippingCompany(selectedProduct.shipping_company)?.label || 'Third party'}`
+                      : selectedProduct.shipping_fee > 0
+                        ? `J${parseFloat(selectedProduct.shipping_fee).toLocaleString()} (own delivery)`
+                        : 'Free (own delivery)'}
+                  </strong>
+                </div>
               </div>
               <p><strong>Seller:</strong> {selectedProduct.farmer_name}</p>
               <p><strong>Location:</strong> {selectedProduct.location}</p>
               <p><strong>In stock:</strong> {selectedProduct.quantity} units</p>
+
+              {/* Third party shipping info box */}
+              {selectedProduct.delivery_type === 'third_party' && getShippingCompany(selectedProduct.shipping_company) && (
+                <div className="shipping-info-box">
+                  <p>📦 This seller uses <strong>{getShippingCompany(selectedProduct.shipping_company).label}</strong> for delivery.</p>
+                  <p>After placing your order, contact them directly to arrange shipping and get their rates:</p>
+                  <a href={getShippingCompany(selectedProduct.shipping_company).url}
+                    target="_blank" rel="noopener noreferrer"
+                    className="shipping-link">
+                    Visit {getShippingCompany(selectedProduct.shipping_company).label} →
+                  </a>
+                </div>
+              )}
+
               <div className="product-detail-actions">
                 {isLoggedIn && isOwner(selectedProduct) && (
                   <>
@@ -527,13 +587,12 @@ function App() {
               <input placeholder="Stock quantity" type="number" min="0"
                 value={selectedProduct.quantity}
                 onChange={e => setSelectedProduct({ ...selectedProduct, quantity: e.target.value })} required />
-              <input placeholder="Shipping & handling fee (JMD)" type="number" min="0" step="0.01"
-                value={selectedProduct.shipping_fee || 0}
-                onChange={e => setSelectedProduct({ ...selectedProduct, shipping_fee: e.target.value })} />
               <input placeholder="Location" value={selectedProduct.location}
                 onChange={e => setSelectedProduct({ ...selectedProduct, location: e.target.value })} required />
               <textarea placeholder="Description" value={selectedProduct.description}
                 onChange={e => setSelectedProduct({ ...selectedProduct, description: e.target.value })} required />
+              <DeliveryFields product={{ ...selectedProduct, delivery_type: selectedProduct.delivery_type || 'own', shipping_company: selectedProduct.shipping_company || '' }}
+                onChange={setSelectedProduct} />
               <button type="submit" disabled={loading}>{loading ? 'Saving…' : 'Save Changes'}</button>
               <button type="button" className="btn-alt" onClick={() => setPage('productDetails')}>Cancel</button>
             </form>
@@ -563,9 +622,9 @@ function App() {
                     <span>Subtotal</span>
                     <strong>J${parseFloat(pricePreview.subtotal).toLocaleString()}</strong>
                   </div>
-                  {pricePreview.shipping_fee > 0 && (
+                  {checkoutProduct.delivery_type === 'own' && pricePreview.shipping_fee > 0 && (
                     <div className="price-row">
-                      <span>🚚 Shipping</span>
+                      <span>🚗 Delivery fee</span>
                       <strong>J${parseFloat(pricePreview.shipping_fee).toLocaleString()}</strong>
                     </div>
                   )}
@@ -580,6 +639,20 @@ function App() {
                   </div>
                 </div>
               )}
+
+              {/* Third party shipping notice at checkout */}
+              {checkoutProduct.delivery_type === 'third_party' && getShippingCompany(checkoutProduct.shipping_company) && (
+                <div className="shipping-info-box">
+                  <p>📦 This product ships via <strong>{getShippingCompany(checkoutProduct.shipping_company).label}</strong>.</p>
+                  <p>After placing your order, contact them to arrange delivery and get shipping rates:</p>
+                  <a href={getShippingCompany(checkoutProduct.shipping_company).url}
+                    target="_blank" rel="noopener noreferrer"
+                    className="shipping-link">
+                    Visit {getShippingCompany(checkoutProduct.shipping_company).label} →
+                  </a>
+                </div>
+              )}
+
               <div>
                 <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-text)', marginBottom: 8, display: 'block' }}>Payment Method</label>
                 <div className="payment-options">
@@ -614,6 +687,19 @@ function App() {
                 <div className="price-row"><span>Payment method</span><strong>{checkoutPayment.toUpperCase()}</strong></div>
                 <div className="price-row"><span>Transaction ID</span><strong style={{ fontSize: 12 }}>{orderResult.payment.transaction_id}</strong></div>
               </div>
+
+              {/* Third party shipping reminder on success */}
+              {orderResult.delivery_type === 'third_party' && getShippingCompany(orderResult.shipping_company) && (
+                <div className="shipping-info-box" style={{ marginTop: 20 }}>
+                  <p>📦 Don't forget to arrange delivery with <strong>{getShippingCompany(orderResult.shipping_company).label}</strong>!</p>
+                  <a href={getShippingCompany(orderResult.shipping_company).url}
+                    target="_blank" rel="noopener noreferrer"
+                    className="shipping-link">
+                    Visit {getShippingCompany(orderResult.shipping_company).label} →
+                  </a>
+                </div>
+              )}
+
               <div className="welcome-actions" style={{ marginTop: 24 }}>
                 <button onClick={() => setPage('orders')}>View My Orders</button>
                 <button className="btn-alt" onClick={() => { fetchProducts(); setPage('products'); }}>Back to Marketplace</button>
@@ -729,7 +815,7 @@ function OrdersPage({ user }) {
             <thead>
               <tr>
                 <th>#</th><th>Product</th><th>Qty</th><th>Total</th>
-                <th>Payment</th><th>Status</th>
+                <th>Payment</th><th>Status</th><th>Delivery</th>
                 {user?.role === 'farmer' && <th>Customer</th>}
                 <th>Action</th>
               </tr>
@@ -743,6 +829,13 @@ function OrdersPage({ user }) {
                   <td>J${parseFloat(o.total_price).toLocaleString()}</td>
                   <td><span className={`status-badge ${o.payment_status}`}>{o.payment_status}</span></td>
                   <td><span className={`status-badge ${o.status}`}>{o.status}</span></td>
+                  <td>
+                    {o.delivery_type === 'third_party' && getShippingCompany(o.shipping_company)
+                      ? <a href={getShippingCompany(o.shipping_company).url} target="_blank" rel="noopener noreferrer" className="shipping-link-small">
+                          📦 {getShippingCompany(o.shipping_company).label}
+                        </a>
+                      : <span>🚗 Own</span>}
+                  </td>
                   {user?.role === 'farmer' && <td>{o.customer_name}</td>}
                   <td style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     {user?.role === 'farmer' && (
@@ -756,9 +849,7 @@ function OrdersPage({ user }) {
                       </select>
                     )}
                     <button className="btn-danger" style={{ padding: '4px 12px', fontSize: 13 }}
-                      onClick={() => cancelOrder(o.id)}>
-                      Cancel
-                    </button>
+                      onClick={() => cancelOrder(o.id)}>Cancel</button>
                   </td>
                 </tr>
               ))}
