@@ -2,7 +2,7 @@ import './App.css';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 const BASE = 'https://jam-market-main-1.onrender.com/api';
-const GOOGLE_MAPS_KEY = 'AIzaSyAfJ8i1mSdIVQhxFlryj_yQG-vALmzGjHg';
+const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
 
 const SHIPPING_COMPANIES = [
   { value: 'knutsford', label: 'Knutsford Express', url: 'https://www.knutsfordexpress.com' },
