@@ -652,6 +652,7 @@ function App() {
   const [checkoutPayment, setCheckoutPayment] = useState('paypal');
   const [pricePreview, setPricePreview]       = useState(null);
   const [orderResult, setOrderResult]         = useState(null);
+  const [newOrderCount, setNewOrderCount]     = useState(0);
 
   useEffect(() => {
     const handler = (e) => {
@@ -692,6 +693,32 @@ function App() {
   useEffect(() => {
     if (isLoggedIn && page === 'messages') fetchInbox();
   }, [isLoggedIn, page, fetchInbox]);
+
+  // ── NEW ORDER NOTIFICATIONS ────────────────────
+  const fetchNewOrderCount = useCallback(async () => {
+    if (!isLoggedIn || user?.role !== 'farmer') return;
+    try {
+      const data = await apiFetch('/orders/unread-count');
+      setNewOrderCount(data.count);
+    } catch (_) {}
+  }, [isLoggedIn, user]);
+
+  // Poll every 30 seconds for new orders
+  useEffect(() => {
+    if (!isLoggedIn || user?.role !== 'farmer') return;
+    fetchNewOrderCount();
+    const interval = setInterval(fetchNewOrderCount, 30000);
+    return () => clearInterval(interval);
+  }, [isLoggedIn, user, fetchNewOrderCount]);
+
+  // Mark orders as read when farmer visits orders page
+  const markOrdersRead = useCallback(async () => {
+    if (!isLoggedIn || user?.role !== 'farmer') return;
+    try {
+      await apiFetch('/orders/mark-read', { method: 'PATCH' });
+      setNewOrderCount(0);
+    } catch (_) {}
+  }, [isLoggedIn, user]);
 
   useEffect(() => {
     if (!checkoutProduct || !checkoutQty) return;
@@ -884,7 +911,14 @@ function App() {
           {isLoggedIn && <li onClick={() => setPage('agriHub')}>🌿 Agri Hub</li>}
           {isLoggedIn && <li onClick={() => setPage('farmersMap')}>🗺️ Map</li>}
           {isLoggedIn && <li onClick={() => setPage('messages')}>Messages</li>}
-          {isLoggedIn && <li onClick={() => setPage('orders')}>My Orders</li>}
+          {isLoggedIn && (
+            <li onClick={() => { setPage('orders'); if(user?.role === 'farmer') markOrdersRead(); }} className="nav-orders-item">
+              My Orders
+              {user?.role === 'farmer' && newOrderCount > 0 && (
+                <span className="nav-badge">{newOrderCount}</span>
+              )}
+            </li>
+          )}
         </ul>
         <div className="auth-buttons">
           {!isLoggedIn ? (
@@ -921,7 +955,12 @@ function App() {
                     🗺️ Farmers Map
                   </button>
                   <div className="profile-dropdown-divider" />
-                  <button className="profile-dropdown-item" onClick={() => { setPage('orders'); setProfileOpen(false); }}>📋 My Orders</button>
+                  <button className="profile-dropdown-item" onClick={() => { setPage('orders'); setProfileOpen(false); if(user?.role === 'farmer') markOrdersRead(); }}>
+                    📋 My Orders
+                    {newOrderCount > 0 && user?.role === 'farmer' && (
+                      <span className="dropdown-badge">{newOrderCount}</span>
+                    )}
+                  </button>
                   <button className="profile-dropdown-item" onClick={() => { setPage('messages'); setProfileOpen(false); }}>💬 Messages</button>
                   <div className="profile-dropdown-divider" />
                   <button className="profile-dropdown-item danger" onClick={handleLogout}>🚪 Logout</button>
@@ -947,7 +986,14 @@ function App() {
             {isLoggedIn && <li onClick={() => navTo('smartPrice')}>💡 Smart Price</li>}
             {isLoggedIn && user?.role === 'farmer' && <li onClick={() => navTo('analytics')}>📊 Analytics</li>}
             {isLoggedIn && <li onClick={() => navTo('messages')}>💬 Messages</li>}
-            {isLoggedIn && <li onClick={() => navTo('orders')}>📋 My Orders</li>}
+            {isLoggedIn && (
+              <li onClick={() => { navTo('orders'); if(user?.role === 'farmer') markOrdersRead(); }} className="mobile-orders-item">
+                📋 My Orders
+                {user?.role === 'farmer' && newOrderCount > 0 && (
+                  <span className="mobile-badge">{newOrderCount}</span>
+                )}
+              </li>
+            )}
             {!isLoggedIn && <li onClick={() => navTo('login')}>🔑 Login</li>}
             {!isLoggedIn && <li onClick={() => navTo('register')}>📝 Register</li>}
             {isLoggedIn && <li className="mobile-logout" onClick={handleLogout}>🚪 Logout</li>}

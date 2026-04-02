@@ -163,4 +163,36 @@ const cancelOrder = async (req, res) => {
   }
 };
 
-module.exports = { placeOrder, getMyOrders, updateOrderStatus, getPrice, cancelOrder };
+// ── UNREAD ORDER COUNT (for farmer notifications) ─
+const getUnreadOrderCount = async (req, res) => {
+  try {
+    const [[result]] = await pool.query(
+      `SELECT COUNT(*) AS count
+       FROM orders o
+       JOIN products p ON o.product_id = p.id
+       WHERE p.farmer_id = ? AND o.is_read = 0`,
+      [req.user.id]
+    );
+    res.json({ count: result.count });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ── MARK ALL ORDERS AS READ ───────────────────
+const markOrdersAsRead = async (req, res) => {
+  try {
+    await pool.query(
+      `UPDATE orders o
+       JOIN products p ON o.product_id = p.id
+       SET o.is_read = 1
+       WHERE p.farmer_id = ? AND o.is_read = 0`,
+      [req.user.id]
+    );
+    res.json({ message: 'Orders marked as read' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+module.exports = { placeOrder, getMyOrders, updateOrderStatus, getPrice, cancelOrder, getUnreadOrderCount, markOrdersAsRead };
