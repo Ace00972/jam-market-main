@@ -3,11 +3,19 @@
 // ═══════════════════════════════════════════════
 const { Router } = require('express');
 const { protect } = require('../middleware/auth');
-const { sendMessage, getConversation, getInbox } = require('../controllers/messageController');
+const {
+  sendMessage,
+  getConversation,
+  getInbox,
+  getUnreadMessageCount,
+  getMyServiceProvider,
+} = require('../controllers/messageController');
 
 const router = Router();
-router.post('/',       protect, sendMessage);
-router.get('/inbox',   protect, getInbox);
-router.get('/:userId', protect, getConversation);
+router.post('/',              protect, sendMessage);
+router.get('/inbox',          protect, getInbox);
+router.get('/unread-count',   protect, getUnreadMessageCount);
+router.get('/my-provider',    protect, getMyServiceProvider);
+router.get('/:userId',        protect, getConversation);
 
 module.exports = router;

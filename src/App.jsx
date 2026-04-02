@@ -652,7 +652,10 @@ function App() {
   const [checkoutPayment, setCheckoutPayment] = useState('paypal');
   const [pricePreview, setPricePreview]       = useState(null);
   const [orderResult, setOrderResult]         = useState(null);
-  const [newOrderCount, setNewOrderCount]     = useState(0);
+  const [newOrderCount, setNewOrderCount]       = useState(0);
+  const [unreadMsgCount, setUnreadMsgCount]     = useState(0);
+  const [myProvider, setMyProvider]             = useState(null);
+  const [farmerPaymentInfo, setFarmerPaymentInfo] = useState(null);
 
   useEffect(() => {
     const handler = (e) => {
@@ -865,6 +868,55 @@ function App() {
     (p.farmer_name || '').toLowerCase().includes(search.toLowerCase())
   );
 
+  // ── MESSAGE NOTIFICATIONS ────────────────────
+  const fetchUnreadMsgCount = useCallback(async () => {
+    if (!isLoggedIn) return;
+    try {
+      const data = await apiFetch('/messages/unread-count');
+      setUnreadMsgCount(data.count);
+    } catch (_) {}
+  }, [isLoggedIn]);
+
+  // Poll every 30 seconds for new messages
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    fetchUnreadMsgCount();
+    const interval = setInterval(fetchUnreadMsgCount, 30000);
+    return () => clearInterval(interval);
+  }, [isLoggedIn, fetchUnreadMsgCount]);
+
+  // Reset message count when visiting messages page
+  useEffect(() => {
+    if (isLoggedIn && page === 'messages') setUnreadMsgCount(0);
+  }, [isLoggedIn, page]);
+
+  // ── SERVICE PROVIDER ──────────────────────────
+  const fetchMyProvider = useCallback(async () => {
+    if (!isLoggedIn) return;
+    try {
+      const data = await apiFetch('/messages/my-provider');
+      setMyProvider(data.provider);
+    } catch (_) {}
+  }, [isLoggedIn]);
+
+  useEffect(() => {
+    if (isLoggedIn) fetchMyProvider();
+  }, [isLoggedIn, fetchMyProvider]);
+
+  // ── FARMER PAYMENT INFO ───────────────────────
+  const fetchFarmerPaymentInfo = useCallback(async (farmerId) => {
+    try {
+      const data = await apiFetch(`/payment-info/${farmerId}`);
+      setFarmerPaymentInfo(data);
+    } catch (_) { setFarmerPaymentInfo(null); }
+  }, []);
+
+  useEffect(() => {
+    if (selectedProduct?.farmer_id) {
+      fetchFarmerPaymentInfo(selectedProduct.farmer_id);
+    }
+  }, [selectedProduct, fetchFarmerPaymentInfo]);
+
   const navTo = (p, cb) => { if (cb) cb(); setPage(p); setMenuOpen(false); };
 
   const DeliveryFields = ({ product, onChange }) => (
@@ -910,7 +962,12 @@ function App() {
           <li onClick={() => { fetchProducts(); setPage('products'); }}>Marketplace</li>
           {isLoggedIn && <li onClick={() => setPage('agriHub')}>🌿 Agri Hub</li>}
           {isLoggedIn && <li onClick={() => setPage('farmersMap')}>🗺️ Map</li>}
-          {isLoggedIn && <li onClick={() => setPage('messages')}>Messages</li>}
+          {isLoggedIn && (
+            <li onClick={() => { setPage('messages'); setUnreadMsgCount(0); }} className="nav-orders-item">
+              Messages
+              {unreadMsgCount > 0 && <span className="nav-badge">{unreadMsgCount}</span>}
+            </li>
+          )}
           {isLoggedIn && (
             <li onClick={() => { setPage('orders'); if(user?.role === 'farmer') markOrdersRead(); }} className="nav-orders-item">
               My Orders
@@ -955,13 +1012,30 @@ function App() {
                     🗺️ Farmers Map
                   </button>
                   <div className="profile-dropdown-divider" />
+                  {myProvider && (
+                    <button className="profile-dropdown-item" onClick={() => {
+                      handleStartChat({ id: myProvider.id, name: myProvider.name + ' (Support)' });
+                      setPage('supportChat');
+                      setProfileOpen(false);
+                    }}>
+                      🎧 Support Chat
+                    </button>
+                  )}
                   <button className="profile-dropdown-item" onClick={() => { setPage('orders'); setProfileOpen(false); if(user?.role === 'farmer') markOrdersRead(); }}>
                     📋 My Orders
                     {newOrderCount > 0 && user?.role === 'farmer' && (
                       <span className="dropdown-badge">{newOrderCount}</span>
                     )}
                   </button>
-                  <button className="profile-dropdown-item" onClick={() => { setPage('messages'); setProfileOpen(false); }}>💬 Messages</button>
+                  <button className="profile-dropdown-item" onClick={() => { setPage('messages'); setProfileOpen(false); setUnreadMsgCount(0); }}>
+                    💬 Messages
+                    {unreadMsgCount > 0 && <span className="dropdown-badge">{unreadMsgCount}</span>}
+                  </button>
+                  {user?.role === 'farmer' && (
+                    <button className="profile-dropdown-item" onClick={() => { setPage('paymentSettings'); setProfileOpen(false); }}>
+                      💳 Payment Settings
+                    </button>
+                  )}
                   <div className="profile-dropdown-divider" />
                   <button className="profile-dropdown-item danger" onClick={handleLogout}>🚪 Logout</button>
                 </div>
@@ -985,7 +1059,12 @@ function App() {
             {isLoggedIn && <li onClick={() => navTo('farmersMap')}>🗺️ Farmers Map</li>}
             {isLoggedIn && <li onClick={() => navTo('smartPrice')}>💡 Smart Price</li>}
             {isLoggedIn && user?.role === 'farmer' && <li onClick={() => navTo('analytics')}>📊 Analytics</li>}
-            {isLoggedIn && <li onClick={() => navTo('messages')}>💬 Messages</li>}
+            {isLoggedIn && (
+              <li onClick={() => { navTo('messages'); setUnreadMsgCount(0); }} className="mobile-orders-item">
+                💬 Messages
+                {unreadMsgCount > 0 && <span className="mobile-badge">{unreadMsgCount}</span>}
+              </li>
+            )}
             {isLoggedIn && (
               <li onClick={() => { navTo('orders'); if(user?.role === 'farmer') markOrdersRead(); }} className="mobile-orders-item">
                 📋 My Orders
@@ -996,6 +1075,12 @@ function App() {
             )}
             {!isLoggedIn && <li onClick={() => navTo('login')}>🔑 Login</li>}
             {!isLoggedIn && <li onClick={() => navTo('register')}>📝 Register</li>}
+            {isLoggedIn && myProvider && (
+              <li onClick={() => navTo('supportChat')}>🎧 Support Chat</li>
+            )}
+            {isLoggedIn && user?.role === 'farmer' && (
+              <li onClick={() => navTo('paymentSettings')}>💳 Payment Settings</li>
+            )}
             {isLoggedIn && <li className="mobile-logout" onClick={handleLogout}>🚪 Logout</li>}
           </ul>
         </div>
@@ -1319,14 +1404,45 @@ function App() {
                 <div className="price-row"><span>Payment method</span><strong>{checkoutPayment.replace(/_/g, ' ').toUpperCase()}</strong></div>
                 <div className="price-row"><span>Transaction ID</span><strong style={{ fontSize: 12 }}>{orderResult.payment.transaction_id}</strong></div>
               </div>
-              {orderResult.bank_details && (
+              {/* Show farmer real payment info */}
+              {checkoutPayment === 'bank_transfer' && (
                 <div className="shipping-info-box" style={{ marginTop: 16 }}>
                   <p>🏦 <strong>Bank Transfer Details</strong></p>
-                  <p>Bank: <strong>{orderResult.bank_details.bank_name}</strong></p>
-                  <p>Account Name: <strong>{orderResult.bank_details.account_name}</strong></p>
-                  <p>Account Number: <strong>{orderResult.bank_details.account_number}</strong></p>
-                  <p>Reference: <strong>{orderResult.bank_details.reference}</strong></p>
-                  <p style={{ color: '#c0392b', fontWeight: 600 }}>⚠️ Use the reference number when making your transfer!</p>
+                  {farmerPaymentInfo?.bank_name ? (
+                    <>
+                      <p>Bank: <strong>{farmerPaymentInfo.bank_name}</strong></p>
+                      <p>Account Name: <strong>{farmerPaymentInfo.account_name}</strong></p>
+                      <p>Account Number: <strong>{farmerPaymentInfo.account_number}</strong></p>
+                      {farmerPaymentInfo.bank_branch && <p>Branch: <strong>{farmerPaymentInfo.bank_branch}</strong></p>}
+                      <p>Reference: <strong>ORDER-{orderResult.order.id}</strong></p>
+                      <p style={{ color: '#c0392b', fontWeight: 600 }}>⚠️ Use ORDER-{orderResult.order.id} as your reference!</p>
+                    </>
+                  ) : (
+                    <p>Please contact the farmer directly for bank transfer details.</p>
+                  )}
+                </div>
+              )}
+
+              {checkoutPayment === 'paypal' && farmerPaymentInfo?.paypal_email && (
+                <div className="shipping-info-box" style={{ marginTop: 16 }}>
+                  <p>💳 <strong>PayPal Payment</strong></p>
+                  <p>Send payment to: <strong>{farmerPaymentInfo.paypal_email}</strong></p>
+                  <p>Amount: <strong>J${parseFloat(orderResult.order.total_price).toLocaleString()}</strong></p>
+                  <p>Reference: <strong>ORDER-{orderResult.order.id}</strong></p>
+                </div>
+              )}
+
+              {farmerPaymentInfo?.cashapp_tag && checkoutPayment === 'cash_on_delivery' && (
+                <div className="shipping-info-box" style={{ marginTop: 16 }}>
+                  <p>💵 <strong>CashApp Option Available</strong></p>
+                  <p>CashApp tag: <strong>{farmerPaymentInfo.cashapp_tag}</strong></p>
+                </div>
+              )}
+
+              {farmerPaymentInfo?.other_payment && (
+                <div className="shipping-info-box" style={{ marginTop: 16 }}>
+                  <p>📝 <strong>Payment Instructions from Farmer</strong></p>
+                  <p>{farmerPaymentInfo.other_payment}</p>
                 </div>
               )}
               {checkoutPayment === 'cash_on_delivery' && (
@@ -1353,6 +1469,56 @@ function App() {
 
         {isLoggedIn && page === 'orders' && <OrdersPage user={user} />}
 
+        {/* PAYMENT SETTINGS PAGE */}
+        {isLoggedIn && user?.role === 'farmer' && page === 'paymentSettings' && (
+          <PaymentSettingsPage user={user} />
+        )}
+
+        {/* SUPPORT CHAT PAGE */}
+        {isLoggedIn && page === 'supportChat' && myProvider && (
+          <section className="welcome-screen">
+            <div className="welcome-card">
+              <div className="support-chat-header">
+                <div className="support-avatar-large">🎧</div>
+                <div>
+                  <h2>Support Chat</h2>
+                  <p style={{ color: 'var(--muted-text)', fontSize: 14 }}>
+                    {myProvider.name} — Your dedicated support agent
+                  </p>
+                </div>
+              </div>
+              <div className="chat-thread">
+                {chatThread.map((msg, idx) => (
+                  <div key={idx} className="chat-message"
+                    style={{
+                      alignSelf: msg.sender_id === user.id ? 'flex-end' : 'flex-start',
+                      background: msg.sender_id === user.id ? 'var(--primary-green)' : 'var(--white)',
+                      color: msg.sender_id === user.id ? 'white' : 'var(--dark-text)',
+                    }}>
+                    <strong style={{ color: msg.sender_id === user.id ? 'rgba(255,255,255,0.8)' : 'var(--primary-green)' }}>
+                      {msg.sender_id === user.id ? 'You' : myProvider.name}
+                    </strong>
+                    {msg.message}
+                  </div>
+                ))}
+                {chatThread.length === 0 && (
+                  <p style={{ color: 'var(--muted-text)', textAlign: 'center', margin: 'auto' }}>
+                    👋 Say hello to your support agent!
+                  </p>
+                )}
+              </div>
+              <form className="chat-form" onSubmit={handleSendMessage}>
+                <input value={newMessage} onChange={e => setNewMessage(e.target.value)}
+                  placeholder="Type your message…" required />
+                <button type="submit">Send</button>
+              </form>
+              <div style={{ marginTop: 16 }}>
+                <button className="btn-alt" onClick={() => setPage('messages')}>← Back</button>
+              </div>
+            </div>
+          </section>
+        )}
+
         {isLoggedIn && page === 'analytics' && user?.role === 'farmer' && <AnalyticsDashboard user={user} />}
 
         {isLoggedIn && page === 'smartPrice' && (
@@ -1370,13 +1536,33 @@ function App() {
           <section className="welcome-screen">
             <div className="welcome-card">
               <h2>Your Messages</h2>
+
+              {/* Permanent Support Chat */}
+              {myProvider && (
+                <div className="support-chat-banner" onClick={() => handleStartChat({ id: myProvider.id, name: myProvider.name + ' (Support)' })}>
+                  <div className="support-avatar">🎧</div>
+                  <div className="support-info">
+                    <strong>Support — {myProvider.name}</strong>
+                    <span>Your dedicated support agent • Click to chat</span>
+                  </div>
+                  <div className="support-online">● Online</div>
+                </div>
+              )}
+
               {loading && <p>Loading…</p>}
-              {!loading && messages.length === 0 && <p>No messages yet.</p>}
-              <ul className="messages-list">
-                {messages.map(m => (
+              {!loading && messages.length === 0 && <p style={{ color: 'var(--muted-text)', marginTop: 16 }}>No other messages yet.</p>}
+              <ul className="messages-list" style={{ marginTop: 16 }}>
+                {messages.filter(m => {
+                  const otherId = m.sender_id === user.id ? m.receiver_id : m.sender_id;
+                  return !myProvider || otherId !== myProvider.id;
+                }).map(m => (
                   <li key={m.id}>
-                    <button onClick={() => handleStartChat({ id: m.sender_id === user.id ? m.receiver_id : m.sender_id, name: m.other_name })}>
+                    <button onClick={() => handleStartChat({
+                      id: m.sender_id === user.id ? m.receiver_id : m.sender_id,
+                      name: m.other_name,
+                    })}>
                       💬 Chat with {m.other_name}
+                      {m.unread_count > 0 && <span className="msg-unread-dot">{m.unread_count}</span>}
                     </button>
                   </li>
                 ))}
@@ -1425,6 +1611,95 @@ function App() {
         <p className="footer-copy">© {new Date().getFullYear()} Jam Market. All rights reserved.</p>
       </footer>
 
+    </div>
+  );
+}
+
+
+// ── PAYMENT SETTINGS PAGE ────────────────────
+function PaymentSettingsPage({ user }) {
+  const [info, setInfo]       = useState({
+    bank_name: '', account_name: '', account_number: '',
+    bank_branch: '', paypal_email: '', cashapp_tag: '', other_payment: ''
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving]   = useState(false);
+  const [saved, setSaved]     = useState(false);
+
+  useEffect(() => {
+    apiFetch('/payment-info/my')
+      .then(data => { if (data) setInfo({ ...info, ...data }); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async (e) => {
+    e.preventDefault(); setSaving(true); setSaved(false);
+    try {
+      await apiFetch('/payment-info', { method: 'POST', body: JSON.stringify(info) });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      alert(err.message);
+    } finally { setSaving(false); }
+  };
+
+  if (loading) return <div className="product-view"><p>Loading payment settings…</p></div>;
+
+  return (
+    <div className="product-view">
+      <h2>💳 Payment Settings</h2>
+      <p style={{ color: 'var(--muted-text)', marginBottom: 24 }}>
+        Set your payment details so customers know how to pay you.
+        Only filled in options will be shown to customers at checkout.
+      </p>
+      <form onSubmit={handleSave} className="payment-settings-form">
+
+        {/* Bank Transfer */}
+        <div className="payment-settings-section">
+          <h3>🏦 Bank Transfer</h3>
+          <input placeholder="Bank name (e.g. NCB, Scotiabank)"
+            value={info.bank_name || ''}
+            onChange={e => setInfo({ ...info, bank_name: e.target.value })} />
+          <input placeholder="Account holder name"
+            value={info.account_name || ''}
+            onChange={e => setInfo({ ...info, account_name: e.target.value })} />
+          <input placeholder="Account number"
+            value={info.account_number || ''}
+            onChange={e => setInfo({ ...info, account_number: e.target.value })} />
+          <input placeholder="Branch (optional)"
+            value={info.bank_branch || ''}
+            onChange={e => setInfo({ ...info, bank_branch: e.target.value })} />
+        </div>
+
+        {/* PayPal */}
+        <div className="payment-settings-section">
+          <h3>💳 PayPal</h3>
+          <input placeholder="Your PayPal email address" type="email"
+            value={info.paypal_email || ''}
+            onChange={e => setInfo({ ...info, paypal_email: e.target.value })} />
+        </div>
+
+        {/* CashApp */}
+        <div className="payment-settings-section">
+          <h3>💵 CashApp</h3>
+          <input placeholder="Your CashApp tag (e.g. $YourName)"
+            value={info.cashapp_tag || ''}
+            onChange={e => setInfo({ ...info, cashapp_tag: e.target.value })} />
+        </div>
+
+        {/* Other */}
+        <div className="payment-settings-section">
+          <h3>📝 Other Payment Instructions</h3>
+          <textarea placeholder="Any other payment instructions for customers…"
+            value={info.other_payment || ''}
+            onChange={e => setInfo({ ...info, other_payment: e.target.value })} />
+        </div>
+
+        <button type="submit" disabled={saving}>
+          {saving ? 'Saving…' : saved ? '✅ Saved!' : 'Save Payment Info'}
+        </button>
+      </form>
     </div>
   );
 }

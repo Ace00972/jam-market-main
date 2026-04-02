@@ -2364,3 +2364,144 @@ select {
   padding: 0 5px;
   margin-left: auto;
 }
+
+/* =============================================
+   SERVICE PROVIDER & PAYMENT SETTINGS
+   ============================================= */
+
+/* Support Chat Banner */
+.support-chat-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(135deg, #1b4332, #2d6a4f);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 8px;
+}
+
+.support-chat-banner:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.support-avatar {
+  font-size: 2rem;
+  width: 48px;
+  height: 48px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.support-avatar-large {
+  font-size: 2.5rem;
+  width: 60px;
+  height: 60px;
+  background: var(--light-gray);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.support-chat-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--mid-gray);
+}
+
+.support-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.support-info strong {
+  color: white;
+  font-size: 15px;
+}
+
+.support-info span {
+  color: rgba(255,255,255,0.7);
+  font-size: 12px;
+}
+
+.support-online {
+  margin-left: auto;
+  color: #2ecc71;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* Unread message dot in inbox */
+.msg-unread-dot {
+  background: #e74c3c;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  margin-left: auto;
+}
+
+/* Payment Settings Form */
+.payment-settings-form {
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.payment-settings-section {
+  background: var(--white);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.payment-settings-section h3 {
+  font-family: 'Playfair Display', serif;
+  color: var(--primary-green);
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+/* Mobile adjustments */
+@media (max-width: 640px) {
+  .support-chat-banner {
+    padding: 12px 14px;
+  }
+
+  .support-avatar {
+    font-size: 1.5rem;
+    width: 40px;
+    height: 40px;
+  }
+
+  .support-info strong {
+    font-size: 13px;
+  }
+
+  .payment-settings-form {
+    max-width: 100%;
+  }
+}
