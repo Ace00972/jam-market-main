@@ -1136,7 +1136,6 @@ function App() {
                 <option value="">Select your role</option>
                 <option value="farmer">Farmer (Seller)</option>
                 <option value="customer">Customer (Buyer)</option>
-                <option value="service_provider">Service Provider</option>
               </select>
               <input name="location" placeholder="Your location (parish)" required />
               <input name="email" type="email" placeholder="Email address" required />
