@@ -854,6 +854,7 @@ function App() {
   };
 
   const isOwner = (product) => product.farmer_id === user?.id;
+  const isAdmin = () => user?.is_admin === 1 || user?.is_admin === true;
 
   const getDisplayPrice = (product) => {
     if (showWholesale && product.wholesale_price)
@@ -1036,6 +1037,14 @@ function App() {
                       💳 Payment Settings
                     </button>
                   )}
+                  {isAdmin() && (
+                    <>
+                      <div className="profile-dropdown-divider" />
+                      <button className="profile-dropdown-item admin" onClick={() => { setPage('adminPanel'); setProfileOpen(false); }}>
+                        ⚙️ Admin Panel
+                      </button>
+                    </>
+                  )}
                   <div className="profile-dropdown-divider" />
                   <button className="profile-dropdown-item danger" onClick={handleLogout}>🚪 Logout</button>
                 </div>
@@ -1080,6 +1089,9 @@ function App() {
             )}
             {isLoggedIn && user?.role === 'farmer' && (
               <li onClick={() => navTo('paymentSettings')}>💳 Payment Settings</li>
+            )}
+            {isLoggedIn && isAdmin() && (
+              <li onClick={() => navTo('adminPanel')}>⚙️ Admin Panel</li>
             )}
             {isLoggedIn && <li className="mobile-logout" onClick={handleLogout}>🚪 Logout</li>}
           </ul>
@@ -1136,6 +1148,7 @@ function App() {
                 <option value="">Select your role</option>
                 <option value="farmer">Farmer (Seller)</option>
                 <option value="customer">Customer (Buyer)</option>
+                <option value="service_provider">Service Provider</option>
               </select>
               <input name="location" placeholder="Your location (parish)" required />
               <input name="email" type="email" placeholder="Email address" required />
@@ -1468,6 +1481,9 @@ function App() {
 
         {isLoggedIn && page === 'orders' && <OrdersPage user={user} />}
 
+        {/* ADMIN PANEL */}
+        {isLoggedIn && isAdmin() && page === 'adminPanel' && <AdminPanel />}
+
         {/* PAYMENT SETTINGS PAGE */}
         {isLoggedIn && user?.role === 'farmer' && page === 'paymentSettings' && (
           <PaymentSettingsPage user={user} />
@@ -1699,6 +1715,164 @@ function PaymentSettingsPage({ user }) {
           {saving ? 'Saving…' : saved ? '✅ Saved!' : 'Save Payment Info'}
         </button>
       </form>
+    </div>
+  );
+}
+
+
+// ── ADMIN PANEL ───────────────────────────────
+function AdminPanel() {
+  const [users, setUsers]     = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState('');
+  const [search, setSearch]   = useState('');
+  const [saved, setSaved]     = useState(null);
+
+  useEffect(() => {
+    apiFetch('/admin/users')
+      .then(setUsers)
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleRoleChange = async (userId, newRole) => {
+    try {
+      await apiFetch(`/admin/users/${userId}/role`, {
+        method: 'PATCH',
+        body: JSON.stringify({ role: newRole }),
+      });
+      setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
+      setSaved(userId);
+      setTimeout(() => setSaved(null), 2000);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const filteredUsers = users.filter(u =>
+    u.name.toLowerCase().includes(search.toLowerCase()) ||
+    u.email.toLowerCase().includes(search.toLowerCase()) ||
+    u.role.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const roleColors = {
+    farmer: '#1b4332',
+    customer: '#2980b9',
+    service_provider: '#8e44ad',
+  };
+
+  return (
+    <div className="product-view">
+      <h2>⚙️ Admin Panel</h2>
+      <p style={{ color: 'var(--muted-text)', marginBottom: 24 }}>
+        Manage user roles. Only you can see this page.
+      </p>
+
+      {/* Stats */}
+      <div className="admin-stats">
+        <div className="admin-stat-card">
+          <span>👥</span>
+          <div>
+            <strong>{users.length}</strong>
+            <span>Total Users</span>
+          </div>
+        </div>
+        <div className="admin-stat-card">
+          <span>👨‍🌾</span>
+          <div>
+            <strong>{users.filter(u => u.role === 'farmer').length}</strong>
+            <span>Farmers</span>
+          </div>
+        </div>
+        <div className="admin-stat-card">
+          <span>🛒</span>
+          <div>
+            <strong>{users.filter(u => u.role === 'customer').length}</strong>
+            <span>Customers</span>
+          </div>
+        </div>
+        <div className="admin-stat-card">
+          <span>🎧</span>
+          <div>
+            <strong>{users.filter(u => u.role === 'service_provider').length}</strong>
+            <span>Support Agents</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div style={{ marginBottom: 20 }}>
+        <input
+          placeholder="Search users by name, email or role…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{ maxWidth: 400 }}
+        />
+      </div>
+
+      {error && <p style={{ color: 'red', marginBottom: 16 }}>{error}</p>}
+      {loading && <p>Loading users…</p>}
+
+      {/* Users Table */}
+      {!loading && (
+        <div className="order-table-wrapper">
+          <table className="order-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Location</th>
+                <th>Current Role</th>
+                <th>Change Role</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredUsers.map(u => (
+                <tr key={u.id}>
+                  <td>#{u.id}</td>
+                  <td>
+                    <strong>{u.name}</strong>
+                    {u.is_admin === 1 && (
+                      <span className="admin-badge">Admin</span>
+                    )}
+                  </td>
+                  <td style={{ fontSize: 13 }}>{u.email}</td>
+                  <td style={{ fontSize: 13 }}>{u.location || '—'}</td>
+                  <td>
+                    <span className="role-badge" style={{ background: roleColors[u.role] }}>
+                      {u.role === 'service_provider' ? '🎧 Support' :
+                       u.role === 'farmer' ? '👨‍🌾 Farmer' : '🛒 Customer'}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <select
+                        value={u.role}
+                        onChange={e => handleRoleChange(u.id, e.target.value)}
+                        style={{ padding: '6px 10px', fontSize: 13, borderRadius: 6 }}
+                      >
+                        <option value="farmer">👨‍🌾 Farmer</option>
+                        <option value="customer">🛒 Customer</option>
+                        <option value="service_provider">🎧 Service Provider</option>
+                      </select>
+                      {saved === u.id && (
+                        <span style={{ color: '#27ae60', fontSize: 13, fontWeight: 600 }}>✅ Saved!</span>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {!loading && filteredUsers.length === 0 && (
+        <p style={{ color: 'var(--muted-text)', textAlign: 'center', padding: 40 }}>
+          No users found.
+        </p>
+      )}
     </div>
   );
 }

@@ -12,7 +12,8 @@ const register = async (req, res) => {
     if (!name || !email || !password || !role)
       return res.status(400).json({ message: 'All fields required' });
 
-    const validRoles = ['farmer', 'customer', 'service_provider'];
+    // Service provider cannot self register
+    const validRoles = ['farmer', 'customer'];
     if (!validRoles.includes(role))
       return res.status(400).json({ message: 'Invalid role' });
 
@@ -49,7 +50,13 @@ const login = async (req, res) => {
 
     res.json({
       token,
-      user: { id: user.id, name: user.name, role: user.role, location: user.location },
+      user: {
+        id: user.id,
+        name: user.name,
+        role: user.role,
+        location: user.location,
+        is_admin: user.is_admin || 0,
+      },
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
