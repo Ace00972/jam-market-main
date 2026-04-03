@@ -2,7 +2,7 @@
 //  JAM MARKET — server/routes/agri.routes.js
 // ═══════════════════════════════════════════════
 const { Router } = require('express');
-const { getWeather, getFarmingTips, getPestAlerts, getFarmersMap } = require('../controllers/Agricontroller');
+const { getWeather, getFarmingTips, getPestAlerts, getFarmersMap } = require('../controllers/agriController');
 
 const router = Router();
 router.get('/weather',      getWeather);
