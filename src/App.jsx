@@ -962,6 +962,7 @@ function App() {
           <li onClick={() => setPage('home')}>Home</li>
           <li onClick={() => { fetchProducts(); setPage('products'); }}>Marketplace</li>
           {isLoggedIn && <li onClick={() => setPage('agriHub')}>🌿 Agri Hub</li>}
+          {isLoggedIn && isAdmin() && <li onClick={() => setPage('adminPanel')} style={{ color: 'var(--jamaica-gold)' }}>⚙️ Admin</li>}
           {isLoggedIn && <li onClick={() => setPage('farmersMap')}>🗺️ Map</li>}
           {isLoggedIn && (
             <li onClick={() => { setPage('messages'); setUnreadMsgCount(0); }} className="nav-orders-item">
@@ -1037,14 +1038,7 @@ function App() {
                       💳 Payment Settings
                     </button>
                   )}
-                  {isAdmin() && (
-                    <>
-                      <div className="profile-dropdown-divider" />
-                      <button className="profile-dropdown-item admin" onClick={() => { setPage('adminPanel'); setProfileOpen(false); }}>
-                        ⚙️ Admin Panel
-                      </button>
-                    </>
-                  )}
+
                   <div className="profile-dropdown-divider" />
                   <button className="profile-dropdown-item danger" onClick={handleLogout}>🚪 Logout</button>
                 </div>
