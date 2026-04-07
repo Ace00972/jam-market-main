@@ -96,6 +96,7 @@ function WeatherWidget({ location }) {
 function AnalyticsDashboard({ user }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeChart, setActiveChart] = useState('revenue');
 
   useEffect(() => {
     apiFetch('/analytics/farmer')
@@ -104,94 +105,153 @@ function AnalyticsDashboard({ user }) {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="analytics-loading"><p>Loading analytics…</p></div>;
-  if (!data) return <div className="analytics-loading"><p>No analytics data yet. Start selling to see your stats!</p></div>;
+  if (loading) return (
+    <div className="dash-loading">
+      <div className="dash-spinner" />
+      <p>Loading your dashboard…</p>
+    </div>
+  );
 
-  const maxRevenue = Math.max(...(data.by_month.map(m => m.revenue) || [1]));
+  if (!data) return (
+    <div className="dash-empty">
+      <div className="dash-empty-icon">📊</div>
+      <h3>No data yet</h3>
+      <p>Start selling to see your analytics here!</p>
+    </div>
+  );
+
+  const maxRevenue = Math.max(...(data.by_month.map(m => parseFloat(m.revenue)) || [1]), 1);
+  const maxOrders  = Math.max(...(data.by_month.map(m => parseInt(m.orders)) || [1]), 1);
+
+  const statusColors = {
+    pending: '#f59e0b', confirmed: '#3b82f6',
+    shipped: '#8b5cf6', delivered: '#10b981', cancelled: '#ef4444'
+  };
 
   return (
-    <div className="analytics-dashboard">
-      <h2>📊 Your Analytics Dashboard</h2>
+    <div className="dash-wrapper">
+      {/* Header */}
+      <div className="dash-header">
+        <div>
+          <h2 className="dash-title">Performance Overview</h2>
+          <p className="dash-subtitle">Welcome back, {user?.name} 👋</p>
+        </div>
+        <div className="dash-date">
+          {new Date().toLocaleDateString('en-JM', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        </div>
+      </div>
 
-      {/* Summary Cards */}
-      <div className="analytics-cards">
-        <div className="analytics-card green">
-          <span className="card-icon">💰</span>
-          <div>
-            <span className="card-value">J${data.summary.total_revenue.toLocaleString()}</span>
-            <span className="card-label">Total Revenue</span>
+      {/* KPI Cards */}
+      <div className="dash-kpi-grid">
+        <div className="dash-kpi-card">
+          <div className="dash-kpi-icon" style={{ background: 'linear-gradient(135deg, #1b4332, #2d6a4f)' }}>💰</div>
+          <div className="dash-kpi-content">
+            <span className="dash-kpi-label">Total Revenue</span>
+            <span className="dash-kpi-value">J${data.summary.total_revenue.toLocaleString()}</span>
           </div>
         </div>
-        <div className="analytics-card gold">
-          <span className="card-icon">📦</span>
-          <div>
-            <span className="card-value">{data.summary.total_orders}</span>
-            <span className="card-label">Total Orders</span>
+        <div className="dash-kpi-card">
+          <div className="dash-kpi-icon" style={{ background: 'linear-gradient(135deg, #d97706, #f59e0b)' }}>📦</div>
+          <div className="dash-kpi-content">
+            <span className="dash-kpi-label">Total Orders</span>
+            <span className="dash-kpi-value">{data.summary.total_orders}</span>
           </div>
         </div>
-        <div className="analytics-card blue">
-          <span className="card-icon">🧺</span>
-          <div>
-            <span className="card-value">{data.summary.total_units_sold}</span>
-            <span className="card-label">Units Sold</span>
+        <div className="dash-kpi-card">
+          <div className="dash-kpi-icon" style={{ background: 'linear-gradient(135deg, #1d4ed8, #3b82f6)' }}>🧺</div>
+          <div className="dash-kpi-content">
+            <span className="dash-kpi-label">Units Sold</span>
+            <span className="dash-kpi-value">{data.summary.total_units_sold}</span>
           </div>
         </div>
-        <div className="analytics-card teal">
-          <span className="card-icon">🌱</span>
-          <div>
-            <span className="card-value">{data.summary.active_products}</span>
-            <span className="card-label">Active Products</span>
+        <div className="dash-kpi-card">
+          <div className="dash-kpi-icon" style={{ background: 'linear-gradient(135deg, #0f766e, #14b8a6)' }}>🌱</div>
+          <div className="dash-kpi-content">
+            <span className="dash-kpi-label">Active Products</span>
+            <span className="dash-kpi-value">{data.summary.active_products}</span>
           </div>
         </div>
       </div>
 
-      {/* Revenue Chart */}
-      {data.by_month.length > 0 && (
-        <div className="chart-container">
-          <h3>📈 Revenue by Month</h3>
-          <div className="bar-chart">
-            {data.by_month.map((m, i) => (
-              <div key={i} className="bar-group">
-                <div className="bar-wrapper">
-                  <div className="bar-fill"
-                    style={{ height: `${Math.max(4, (m.revenue / maxRevenue) * 100)}%` }}
-                    title={`J$${parseFloat(m.revenue).toLocaleString()}`}>
-                    <span className="bar-value">J${(parseFloat(m.revenue)/1000).toFixed(0)}k</span>
-                  </div>
-                </div>
-                <span className="bar-label">{m.month.split(' ')[0]}</span>
+      <div className="dash-grid-2">
+        {/* Chart */}
+        {data.by_month.length > 0 && (
+          <div className="dash-card dash-chart-card">
+            <div className="dash-card-header">
+              <h3>Growth Overview</h3>
+              <div className="dash-chart-toggle">
+                <button className={activeChart === 'revenue' ? 'active' : ''} onClick={() => setActiveChart('revenue')}>Revenue</button>
+                <button className={activeChart === 'orders' ? 'active' : ''} onClick={() => setActiveChart('orders')}>Orders</button>
               </div>
-            ))}
+            </div>
+            <div className="dash-bar-chart">
+              {data.by_month.map((m, i) => {
+                const val = activeChart === 'revenue' ? parseFloat(m.revenue) : parseInt(m.orders);
+                const max = activeChart === 'revenue' ? maxRevenue : maxOrders;
+                const pct = Math.max(6, (val / max) * 100);
+                return (
+                  <div key={i} className="dash-bar-col">
+                    <div className="dash-bar-track">
+                      <div className="dash-bar" style={{ height: `${pct}%` }}>
+                        <span className="dash-bar-tooltip">
+                          {activeChart === 'revenue' ? `J$${val.toLocaleString()}` : `${val} orders`}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="dash-bar-label">{m.month.split(' ')[0]}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Order Status donut-style */}
+        {data.by_status.length > 0 && (
+          <div className="dash-card">
+            <div className="dash-card-header">
+              <h3>Orders by Status</h3>
+            </div>
+            <div className="dash-status-list">
+              {data.by_status.map((s, i) => {
+                const total = data.by_status.reduce((acc, x) => acc + parseInt(x.count), 0);
+                const pct = Math.round((parseInt(s.count) / total) * 100);
+                return (
+                  <div key={i} className="dash-status-row">
+                    <div className="dash-status-info">
+                      <span className="dash-status-dot" style={{ background: statusColors[s.status] || '#999' }} />
+                      <span className="dash-status-name">{s.status}</span>
+                    </div>
+                    <div className="dash-status-bar-track">
+                      <div className="dash-status-bar-fill"
+                        style={{ width: `${pct}%`, background: statusColors[s.status] || '#999' }} />
+                    </div>
+                    <span className="dash-status-count">{s.count}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Top Products */}
       {data.by_product.length > 0 && (
-        <div className="chart-container">
-          <h3>🏆 Top Products by Revenue</h3>
-          <div className="top-products">
-            {data.by_product.slice(0, 5).map((p, i) => (
-              <div key={i} className="top-product-row">
-                <span className="rank">#{i + 1}</span>
-                <span className="product-name">{p.name}</span>
-                <span className="product-units">{p.units_sold || 0} units</span>
-                <span className="product-revenue">J${parseFloat(p.revenue || 0).toLocaleString()}</span>
-              </div>
-            ))}
+        <div className="dash-card">
+          <div className="dash-card-header">
+            <h3>Top Products</h3>
+            <span className="dash-card-sub">By revenue</span>
           </div>
-        </div>
-      )}
-
-      {/* Order Status Breakdown */}
-      {data.by_status.length > 0 && (
-        <div className="chart-container">
-          <h3>📋 Orders by Status</h3>
-          <div className="status-breakdown">
-            {data.by_status.map((s, i) => (
-              <div key={i} className="status-row">
-                <span className={`status-badge ${s.status}`}>{s.status}</span>
-                <span className="status-count">{s.count} orders</span>
+          <div className="dash-products-table">
+            <div className="dash-products-header">
+              <span>#</span><span>Product</span><span>Units</span><span>Revenue</span>
+            </div>
+            {data.by_product.slice(0, 5).map((p, i) => (
+              <div key={i} className="dash-products-row">
+                <span className="dash-rank">{i + 1}</span>
+                <span className="dash-product-name">{p.name}</span>
+                <span className="dash-product-units">{p.units_sold || 0}</span>
+                <span className="dash-product-rev">J${parseFloat(p.revenue || 0).toLocaleString()}</span>
               </div>
             ))}
           </div>
@@ -200,6 +260,7 @@ function AnalyticsDashboard({ user }) {
     </div>
   );
 }
+
 
 // Smart Price Tool
 function SmartPriceTool({ userLocation }) {
@@ -656,6 +717,8 @@ function App() {
   const [unreadMsgCount, setUnreadMsgCount]     = useState(0);
   const [myProvider, setMyProvider]             = useState(null);
   const [farmerPaymentInfo, setFarmerPaymentInfo] = useState(null);
+  const [announcements, setAnnouncements]         = useState([]);
+  const [showAnnouncement, setShowAnnouncement]   = useState(false);
 
   useEffect(() => {
     const handler = (e) => {
@@ -904,6 +967,18 @@ function App() {
     if (isLoggedIn) fetchMyProvider();
   }, [isLoggedIn, fetchMyProvider]);
 
+  // ── ANNOUNCEMENTS ─────────────────────────────
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    apiFetch('/admin/announcements')
+      .then(data => {
+        if (data.length > 0) {
+          setAnnouncements(data);
+          setShowAnnouncement(true);
+        }
+      }).catch(() => {});
+  }, [isLoggedIn]);
+
   // ── FARMER PAYMENT INFO ───────────────────────
   const fetchFarmerPaymentInfo = useCallback(async (farmerId) => {
     try {
@@ -1096,6 +1171,18 @@ function App() {
         <div className="error-banner">
           {error}
           <button onClick={() => setError('')} className="error-close">✕</button>
+        </div>
+      )}
+
+      {/* ANNOUNCEMENTS BANNER */}
+      {isLoggedIn && showAnnouncement && announcements.length > 0 && (
+        <div className="announcement-banner">
+          <span className="announcement-icon">📢</span>
+          <div className="announcement-content">
+            <strong>{announcements[0].title}</strong>
+            <p>{announcements[0].message}</p>
+          </div>
+          <button className="announcement-close" onClick={() => setShowAnnouncement(false)}>✕</button>
         </div>
       )}
 
@@ -1716,31 +1803,98 @@ function PaymentSettingsPage({ user }) {
 
 // ── ADMIN PANEL ───────────────────────────────
 function AdminPanel() {
-  const [users, setUsers]     = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState('');
-  const [search, setSearch]   = useState('');
-  const [saved, setSaved]     = useState(null);
+  const [tab, setTab]               = useState('users');
+  const [users, setUsers]           = useState([]);
+  const [pestAlerts, setPestAlerts] = useState([]);
+  const [tips, setTips]             = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [search, setSearch]         = useState('');
+  const [saved, setSaved]           = useState(null);
+  const [error, setError]           = useState('');
+
+  const [newAlert, setNewAlert]     = useState({ title: '', description: '', region: '', severity: 'medium' });
+  const [newTip, setNewTip]         = useState({ title: '', content: '', category: '' });
+  const [newAnnouncement, setNewAnnouncement] = useState({ title: '', message: '' });
 
   useEffect(() => {
-    apiFetch('/admin/users')
-      .then(setUsers)
-      .catch(err => setError(err.message))
+    setLoading(true);
+    Promise.all([
+      apiFetch('/admin/users'),
+      apiFetch('/admin/pest-alerts'),
+      apiFetch('/admin/farming-tips'),
+      apiFetch('/admin/announcements'),
+    ]).then(([u, p, t, a]) => {
+      setUsers(u); setPestAlerts(p); setTips(t); setAnnouncements(a);
+    }).catch(err => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
 
   const handleRoleChange = async (userId, newRole) => {
     try {
-      await apiFetch(`/admin/users/${userId}/role`, {
-        method: 'PATCH',
-        body: JSON.stringify({ role: newRole }),
-      });
+      await apiFetch(`/admin/users/${userId}/role`, { method: 'PATCH', body: JSON.stringify({ role: newRole }) });
       setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
-      setSaved(userId);
-      setTimeout(() => setSaved(null), 2000);
-    } catch (err) {
-      setError(err.message);
-    }
+      setSaved(userId); setTimeout(() => setSaved(null), 2000);
+    } catch (err) { setError(err.message); }
+  };
+
+  const handleDeleteUser = async (userId, name) => {
+    if (!window.confirm(`Delete user "${name}"? This cannot be undone!`)) return;
+    try {
+      await apiFetch(`/admin/users/${userId}`, { method: 'DELETE' });
+      setUsers(users.filter(u => u.id !== userId));
+    } catch (err) { setError(err.message); }
+  };
+
+  const handleAddPestAlert = async (e) => {
+    e.preventDefault();
+    try {
+      const data = await apiFetch('/admin/pest-alerts', { method: 'POST', body: JSON.stringify(newAlert) });
+      setPestAlerts([{ id: data.id, ...newAlert, created_at: new Date() }, ...pestAlerts]);
+      setNewAlert({ title: '', description: '', region: '', severity: 'medium' });
+    } catch (err) { setError(err.message); }
+  };
+
+  const handleDeletePestAlert = async (id) => {
+    if (!window.confirm('Delete this pest alert?')) return;
+    try {
+      await apiFetch(`/admin/pest-alerts/${id}`, { method: 'DELETE' });
+      setPestAlerts(pestAlerts.filter(a => a.id !== id));
+    } catch (err) { setError(err.message); }
+  };
+
+  const handleAddTip = async (e) => {
+    e.preventDefault();
+    try {
+      const data = await apiFetch('/admin/farming-tips', { method: 'POST', body: JSON.stringify(newTip) });
+      setTips([{ id: data.id, ...newTip, created_at: new Date() }, ...tips]);
+      setNewTip({ title: '', content: '', category: '' });
+    } catch (err) { setError(err.message); }
+  };
+
+  const handleDeleteTip = async (id) => {
+    if (!window.confirm('Delete this farming tip?')) return;
+    try {
+      await apiFetch(`/admin/farming-tips/${id}`, { method: 'DELETE' });
+      setTips(tips.filter(t => t.id !== id));
+    } catch (err) { setError(err.message); }
+  };
+
+  const handleAddAnnouncement = async (e) => {
+    e.preventDefault();
+    try {
+      const data = await apiFetch('/admin/announcements', { method: 'POST', body: JSON.stringify(newAnnouncement) });
+      setAnnouncements([{ id: data.id, ...newAnnouncement, created_at: new Date() }, ...announcements]);
+      setNewAnnouncement({ title: '', message: '' });
+    } catch (err) { setError(err.message); }
+  };
+
+  const handleDeleteAnnouncement = async (id) => {
+    if (!window.confirm('Delete this announcement?')) return;
+    try {
+      await apiFetch(`/admin/announcements/${id}`, { method: 'DELETE' });
+      setAnnouncements(announcements.filter(a => a.id !== id));
+    } catch (err) { setError(err.message); }
   };
 
   const filteredUsers = users.filter(u =>
@@ -1749,124 +1903,238 @@ function AdminPanel() {
     u.role.toLowerCase().includes(search.toLowerCase())
   );
 
-  const roleColors = {
-    farmer: '#1b4332',
-    customer: '#2980b9',
-    service_provider: '#8e44ad',
-  };
+  const roleColors   = { farmer: '#1b4332', customer: '#1d4ed8', service_provider: '#7c3aed' };
+  const severityColors = { high: '#ef4444', medium: '#f59e0b', low: '#10b981' };
+
+  const navTabs = [
+    { key: 'users',         icon: '👥', label: 'Users',        count: users.length },
+    { key: 'pestAlerts',    icon: '⚠️', label: 'Pest Alerts',  count: pestAlerts.length },
+    { key: 'tips',          icon: '🌾', label: 'Farming Tips', count: tips.length },
+    { key: 'announcements', icon: '📢', label: 'Announcements',count: announcements.length },
+  ];
+
+  if (loading) return (
+    <div className="dash-loading">
+      <div className="dash-spinner" />
+      <p>Loading admin panel…</p>
+    </div>
+  );
 
   return (
-    <div className="product-view">
-      <h2>⚙️ Admin Panel</h2>
-      <p style={{ color: 'var(--muted-text)', marginBottom: 24 }}>
-        Manage user roles. Only you can see this page.
-      </p>
-
-      {/* Stats */}
-      <div className="admin-stats">
-        <div className="admin-stat-card">
-          <span>👥</span>
+    <div className="admin-dash-wrapper">
+      {/* Sidebar */}
+      <aside className="admin-sidebar">
+        <div className="admin-sidebar-header">
+          <div className="admin-sidebar-logo">⚙️</div>
           <div>
-            <strong>{users.length}</strong>
-            <span>Total Users</span>
+            <strong>Admin Panel</strong>
+            <span>Jam Market</span>
           </div>
         </div>
-        <div className="admin-stat-card">
-          <span>👨‍🌾</span>
-          <div>
-            <strong>{users.filter(u => u.role === 'farmer').length}</strong>
-            <span>Farmers</span>
+
+        {/* Platform Stats */}
+        <div className="admin-sidebar-stats">
+          <div className="admin-sidebar-stat">
+            <span>{users.length}</span><p>Users</p>
+          </div>
+          <div className="admin-sidebar-stat">
+            <span>{users.filter(u => u.role === 'farmer').length}</span><p>Farmers</p>
+          </div>
+          <div className="admin-sidebar-stat">
+            <span>{users.filter(u => u.role === 'service_provider').length}</span><p>Support</p>
           </div>
         </div>
-        <div className="admin-stat-card">
-          <span>🛒</span>
-          <div>
-            <strong>{users.filter(u => u.role === 'customer').length}</strong>
-            <span>Customers</span>
+
+        <nav className="admin-sidebar-nav">
+          {navTabs.map(t => (
+            <button key={t.key}
+              className={`admin-nav-item ${tab === t.key ? 'active' : ''}`}
+              onClick={() => setTab(t.key)}>
+              <span className="admin-nav-icon">{t.icon}</span>
+              <span className="admin-nav-label">{t.label}</span>
+              <span className="admin-nav-count">{t.count}</span>
+            </button>
+          ))}
+        </nav>
+      </aside>
+
+      {/* Main Content */}
+      <main className="admin-main">
+        {error && (
+          <div className="admin-error">
+            ⚠️ {error}
+            <button onClick={() => setError('')}>✕</button>
           </div>
-        </div>
-        <div className="admin-stat-card">
-          <span>🎧</span>
-          <div>
-            <strong>{users.filter(u => u.role === 'service_provider').length}</strong>
-            <span>Support Agents</span>
+        )}
+
+        {/* USERS */}
+        {tab === 'users' && (
+          <div className="admin-section">
+            <div className="admin-section-header">
+              <h2>User Management</h2>
+              <input className="admin-search" placeholder="🔍 Search users…"
+                value={search} onChange={e => setSearch(e.target.value)} />
+            </div>
+            <div className="admin-table-card">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>User</th><th>Email</th><th>Location</th>
+                    <th>Role</th><th>Change Role</th><th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredUsers.map(u => (
+                    <tr key={u.id}>
+                      <td>
+                        <div className="admin-user-cell">
+                          <div className="admin-user-avatar">{u.name.charAt(0).toUpperCase()}</div>
+                          <div>
+                            <strong>{u.name}</strong>
+                            {u.is_admin === 1 && <span className="admin-badge">Admin</span>}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="admin-td-muted">{u.email}</td>
+                      <td className="admin-td-muted">{u.location || '—'}</td>
+                      <td>
+                        <span className="admin-role-pill" style={{ background: roleColors[u.role] + '20', color: roleColors[u.role], border: `1px solid ${roleColors[u.role]}40` }}>
+                          {u.role === 'service_provider' ? '🎧 Support' : u.role === 'farmer' ? '👨‍🌾 Farmer' : '🛒 Customer'}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="admin-role-change">
+                          <select value={u.role} onChange={e => handleRoleChange(u.id, e.target.value)} className="admin-select">
+                            <option value="farmer">👨‍🌾 Farmer</option>
+                            <option value="customer">🛒 Customer</option>
+                            <option value="service_provider">🎧 Support</option>
+                          </select>
+                          {saved === u.id && <span className="admin-saved">✅</span>}
+                        </div>
+                      </td>
+                      <td>
+                        {u.is_admin !== 1 && (
+                          <button className="admin-delete-btn" onClick={() => handleDeleteUser(u.id, u.name)}>
+                            🗑️ Delete
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* Search */}
-      <div style={{ marginBottom: 20 }}>
-        <input
-          placeholder="Search users by name, email or role…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{ maxWidth: 400 }}
-        />
-      </div>
-
-      {error && <p style={{ color: 'red', marginBottom: 16 }}>{error}</p>}
-      {loading && <p>Loading users…</p>}
-
-      {/* Users Table */}
-      {!loading && (
-        <div className="order-table-wrapper">
-          <table className="order-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Location</th>
-                <th>Current Role</th>
-                <th>Change Role</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.map(u => (
-                <tr key={u.id}>
-                  <td>#{u.id}</td>
-                  <td>
-                    <strong>{u.name}</strong>
-                    {u.is_admin === 1 && (
-                      <span className="admin-badge">Admin</span>
-                    )}
-                  </td>
-                  <td style={{ fontSize: 13 }}>{u.email}</td>
-                  <td style={{ fontSize: 13 }}>{u.location || '—'}</td>
-                  <td>
-                    <span className="role-badge" style={{ background: roleColors[u.role] }}>
-                      {u.role === 'service_provider' ? '🎧 Support' :
-                       u.role === 'farmer' ? '👨‍🌾 Farmer' : '🛒 Customer'}
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <select
-                        value={u.role}
-                        onChange={e => handleRoleChange(u.id, e.target.value)}
-                        style={{ padding: '6px 10px', fontSize: 13, borderRadius: 6 }}
-                      >
-                        <option value="farmer">👨‍🌾 Farmer</option>
-                        <option value="customer">🛒 Customer</option>
-                        <option value="service_provider">🎧 Service Provider</option>
-                      </select>
-                      {saved === u.id && (
-                        <span style={{ color: '#27ae60', fontSize: 13, fontWeight: 600 }}>✅ Saved!</span>
-                      )}
-                    </div>
-                  </td>
-                </tr>
+        {/* PEST ALERTS */}
+        {tab === 'pestAlerts' && (
+          <div className="admin-section">
+            <div className="admin-section-header"><h2>Pest & Disease Alerts</h2></div>
+            <div className="admin-form-panel">
+              <h3>➕ New Alert</h3>
+              <form onSubmit={handleAddPestAlert} className="admin-form-grid">
+                <input placeholder="Alert title" value={newAlert.title}
+                  onChange={e => setNewAlert({ ...newAlert, title: e.target.value })} required />
+                <input placeholder="Region (e.g. Manchester, St. Ann)" value={newAlert.region}
+                  onChange={e => setNewAlert({ ...newAlert, region: e.target.value })} />
+                <select value={newAlert.severity} onChange={e => setNewAlert({ ...newAlert, severity: e.target.value })}
+                  className="admin-select">
+                  <option value="low">🟢 Low</option>
+                  <option value="medium">🟡 Medium</option>
+                  <option value="high">🔴 High</option>
+                </select>
+                <button type="submit" className="admin-submit-btn">Add Alert</button>
+                <textarea placeholder="Description" value={newAlert.description}
+                  onChange={e => setNewAlert({ ...newAlert, description: e.target.value })}
+                  required style={{ gridColumn: '1 / -1' }} />
+              </form>
+            </div>
+            <div className="admin-content-list">
+              {pestAlerts.map(a => (
+                <div key={a.id} className="admin-content-card" style={{ borderLeft: `4px solid ${severityColors[a.severity] || '#999'}` }}>
+                  <div className="admin-content-info">
+                    <div className="admin-content-title">{a.title}</div>
+                    <div className="admin-content-meta">📍 {a.region || 'Island Wide'} • <span style={{ color: severityColors[a.severity], fontWeight: 600 }}>{a.severity?.toUpperCase()}</span></div>
+                    <div className="admin-content-desc">{a.description}</div>
+                  </div>
+                  <button className="admin-delete-btn" onClick={() => handleDeletePestAlert(a.id)}>🗑️</button>
+                </div>
               ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              {pestAlerts.length === 0 && <p className="admin-empty">No pest alerts yet.</p>}
+            </div>
+          </div>
+        )}
 
-      {!loading && filteredUsers.length === 0 && (
-        <p style={{ color: 'var(--muted-text)', textAlign: 'center', padding: 40 }}>
-          No users found.
-        </p>
-      )}
+        {/* FARMING TIPS */}
+        {tab === 'tips' && (
+          <div className="admin-section">
+            <div className="admin-section-header"><h2>Farming Tips</h2></div>
+            <div className="admin-form-panel">
+              <h3>➕ New Tip</h3>
+              <form onSubmit={handleAddTip} className="admin-form-grid">
+                <input placeholder="Tip title" value={newTip.title}
+                  onChange={e => setNewTip({ ...newTip, title: e.target.value })} required />
+                <input placeholder="Category (e.g. Planting, Pest Control)" value={newTip.category}
+                  onChange={e => setNewTip({ ...newTip, category: e.target.value })} />
+                <button type="submit" className="admin-submit-btn">Add Tip</button>
+                <textarea placeholder="Tip content" value={newTip.content}
+                  onChange={e => setNewTip({ ...newTip, content: e.target.value })}
+                  required style={{ gridColumn: '1 / -1' }} />
+              </form>
+            </div>
+            <div className="admin-content-list">
+              {tips.map(t => (
+                <div key={t.id} className="admin-content-card" style={{ borderLeft: '4px solid #1b4332' }}>
+                  <div className="admin-content-info">
+                    <div className="admin-content-title">{t.title}</div>
+                    <div className="admin-content-meta">📌 {t.category || 'General'}</div>
+                    <div className="admin-content-desc">{t.content?.substring(0, 120)}…</div>
+                  </div>
+                  <button className="admin-delete-btn" onClick={() => handleDeleteTip(t.id)}>🗑️</button>
+                </div>
+              ))}
+              {tips.length === 0 && <p className="admin-empty">No farming tips yet.</p>}
+            </div>
+          </div>
+        )}
+
+        {/* ANNOUNCEMENTS */}
+        {tab === 'announcements' && (
+          <div className="admin-section">
+            <div className="admin-section-header"><h2>Announcements</h2></div>
+            <div className="admin-form-panel announcement-panel">
+              <h3>📢 Send Announcement</h3>
+              <p style={{ color: 'var(--muted-text)', fontSize: 13, marginBottom: 12 }}>
+                Shown to all users as a banner when they log in.
+              </p>
+              <form onSubmit={handleAddAnnouncement} className="admin-form-grid">
+                <input placeholder="Announcement title" value={newAnnouncement.title}
+                  onChange={e => setNewAnnouncement({ ...newAnnouncement, title: e.target.value })} required />
+                <button type="submit" className="admin-submit-btn">📢 Send</button>
+                <textarea placeholder="Announcement message" value={newAnnouncement.message}
+                  onChange={e => setNewAnnouncement({ ...newAnnouncement, message: e.target.value })}
+                  required style={{ gridColumn: '1 / -1' }} />
+              </form>
+            </div>
+            <div className="admin-content-list">
+              {announcements.map(a => (
+                <div key={a.id} className="admin-content-card announcement-card">
+                  <div className="admin-content-info">
+                    <div className="admin-content-title">📢 {a.title}</div>
+                    <div className="admin-content-meta">
+                      {new Date(a.created_at).toLocaleDateString('en-JM', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    </div>
+                    <div className="admin-content-desc">{a.message}</div>
+                  </div>
+                  <button className="admin-delete-btn" onClick={() => handleDeleteAnnouncement(a.id)}>🗑️</button>
+                </div>
+              ))}
+              {announcements.length === 0 && <p className="admin-empty">No announcements yet.</p>}
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
