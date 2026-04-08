@@ -5,9 +5,9 @@ const BASE = 'https://jam-market-main-1.onrender.com/api';
 const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
 
 const SHIPPING_COMPANIES = [
-  { value: 'knutsford', label: 'Knutsford Express', url: 'https://www.knutsfordexpress.com' },
-  { value: 'zipmail',   label: 'Zipmail',            url: 'https://www.zipmail.com.jm' },
-  { value: 'tara',      label: 'Tara Courier',       url: 'https://www.taracourier.com' },
+  { value: 'knutsford', label: 'Knutsford Express', url: 'https://www.knutsfordexpress.com/courier/our-courier-service/' },
+  { value: 'zipmail',   label: 'Zipmail',            url: 'https://jamaicapost.gov.jm/products/zipmail/' },
+  { value: 'tara',      label: 'Tara Courier',       url: 'https://taracan.com/' },
   { value: 'jamex',     label: 'JAMEX',              url: 'https://www.jamex.com.jm' },
 ];
 
