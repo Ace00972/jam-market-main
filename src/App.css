@@ -3512,3 +3512,41 @@ select {
 
   .dash-wrapper { padding: 20px 4%; }
 }
+
+/* =============================================
+   SOLD OUT STYLES
+   ============================================= */
+.sold-out-badge {
+  display: inline-block;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 8px;
+}
+
+.btn-sold-out {
+  background: #f1f5f9 !important;
+  color: #94a3b8 !important;
+  cursor: not-allowed !important;
+  border: 1.5px solid #e2e8f0 !important;
+}
+
+.btn-sold-out:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Dim sold out product cards */
+.prod-card:has(.sold-out-badge) {
+  opacity: 0.75;
+}
+
+/* Unavailable payment option */
+.payment-option.unavailable {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

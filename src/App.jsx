@@ -711,12 +711,15 @@ function App() {
   const [checkoutProduct, setCheckoutProduct] = useState(null);
   const [checkoutQty, setCheckoutQty]         = useState(1);
   const [checkoutPayment, setCheckoutPayment] = useState('paypal');
-  const [pricePreview, setPricePreview]       = useState(null);
+  const [pricePreview, setPricePreview]         = useState(null);
+  const [availablePayments, setAvailablePayments] = useState([]);
   const [orderResult, setOrderResult]         = useState(null);
   const [newOrderCount, setNewOrderCount]       = useState(0);
   const [unreadMsgCount, setUnreadMsgCount]     = useState(0);
   const [myProvider, setMyProvider]             = useState(null);
-  const [farmerPaymentInfo, setFarmerPaymentInfo] = useState(null);
+  const [farmerPaymentInfo, setFarmerPaymentInfo]   = useState(null);
+  const [myPaymentInfo, setMyPaymentInfo]           = useState(null);
+  const [paymentInfoLoaded, setPaymentInfoLoaded]   = useState(false);
   const [announcements, setAnnouncements]         = useState([]);
   const [showAnnouncement, setShowAnnouncement]   = useState(false);
 
@@ -789,7 +792,16 @@ function App() {
   useEffect(() => {
     if (!checkoutProduct || !checkoutQty) return;
     apiFetch(`/orders/price?product_id=${checkoutProduct.id}&quantity=${checkoutQty}`)
-      .then(setPricePreview).catch(() => {});
+      .then(data => {
+        setPricePreview(data);
+        if (data.available_payments) {
+          setAvailablePayments(data.available_payments);
+          // Default to first available payment
+          if (data.available_payments.length > 0 && !data.available_payments.includes(checkoutPayment)) {
+            setCheckoutPayment(data.available_payments[0]);
+          }
+        }
+      }).catch(() => {});
   }, [checkoutProduct, checkoutQty]);
 
   const handleLogin = async (e) => {
@@ -978,6 +990,15 @@ function App() {
         }
       }).catch(() => {});
   }, [isLoggedIn]);
+
+  // ── MY OWN PAYMENT INFO (for farmers) ───────────
+  useEffect(() => {
+    if (!isLoggedIn || user?.role !== 'farmer') return;
+    apiFetch('/payment-info/my')
+      .then(data => { setMyPaymentInfo(data); })
+      .catch(() => { setMyPaymentInfo(null); })
+      .finally(() => setPaymentInfoLoaded(true));
+  }, [isLoggedIn, user]);
 
   // ── FARMER PAYMENT INFO ───────────────────────
   const fetchFarmerPaymentInfo = useCallback(async (farmerId) => {
@@ -1273,7 +1294,15 @@ function App() {
                   onClick={() => setShowWholesale(true)}>Wholesale</button>
               </div>
               {isLoggedIn && user?.role === 'farmer' && (
-                <button onClick={() => setPage('addProduct')}>+ Add Product</button>
+                <button onClick={() => {
+                  if (!myPaymentInfo || (!myPaymentInfo.bank_name && !myPaymentInfo.paypal_email && !myPaymentInfo.cashapp_tag && !myPaymentInfo.other_payment)) {
+                    if (window.confirm('⚠️ You need to set up your Payment Settings before adding products so customers know how to pay you. Go to Payment Settings now?')) {
+                      setPage('paymentSettings');
+                    }
+                  } else {
+                    setPage('addProduct');
+                  }
+                }}>+ Add Product</button>
               )}
             </div>
             {loading && <p style={{ textAlign: 'center', padding: 24 }}>Loading products…</p>}
@@ -1303,6 +1332,9 @@ function App() {
                           ? `🚗 Delivery: J$${parseFloat(prod.shipping_fee).toLocaleString()}`
                           : '🚗 Free delivery'}
                     </p>
+                    {(prod.sold_out || prod.quantity <= 0) && (
+                      <div className="sold-out-badge">🚫 Sold Out</div>
+                    )}
                   </div>
                 );
               })}
@@ -1311,7 +1343,24 @@ function App() {
           </div>
         )}
 
-        {isLoggedIn && user?.role === 'farmer' && page === 'addProduct' && (
+        {isLoggedIn && user?.role === 'farmer' && page === 'addProduct' && 
+         paymentInfoLoaded && (!myPaymentInfo || (!myPaymentInfo.bank_name && !myPaymentInfo.paypal_email && !myPaymentInfo.cashapp_tag && !myPaymentInfo.other_payment)) && (
+          <section className="auth-container">
+            <div className="auth-form" style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>💳</div>
+              <h2 style={{ color: 'var(--primary-green)' }}>Payment Setup Required</h2>
+              <p style={{ color: 'var(--muted-text)', marginBottom: 24 }}>
+                You need to set up at least one payment method before adding products.
+                This lets customers know how to pay you!
+              </p>
+              <button onClick={() => setPage('paymentSettings')}>Go to Payment Settings</button>
+              <button className="btn-alt" style={{ marginTop: 10 }} onClick={() => setPage('products')}>Back to Marketplace</button>
+            </div>
+          </section>
+        )}
+
+        {isLoggedIn && user?.role === 'farmer' && page === 'addProduct' && 
+         paymentInfoLoaded && myPaymentInfo && (myPaymentInfo.bank_name || myPaymentInfo.paypal_email || myPaymentInfo.cashapp_tag || myPaymentInfo.other_payment) && (
           <section className="auth-container">
             <form className="auth-form" onSubmit={handleAddProduct}>
               <h2>Add New Product</h2>
@@ -1384,7 +1433,9 @@ function App() {
                   </>
                 )}
                 {isLoggedIn && !isOwner(selectedProduct) && user?.role === 'customer' && (
-                  <button onClick={() => handleCheckout(selectedProduct)}>🛒 Buy Now</button>
+                  selectedProduct.sold_out || selectedProduct.quantity <= 0
+                    ? <button disabled className="btn-sold-out">🚫 Sold Out</button>
+                    : <button onClick={() => handleCheckout(selectedProduct)}>🛒 Buy Now</button>
                 )}
                 {isLoggedIn && !isOwner(selectedProduct) && (
                   <button className="btn-alt" onClick={() => handleStartChat({ id: selectedProduct.farmer_id, name: selectedProduct.farmer_name })}>💬 Message Seller</button>
@@ -1466,12 +1517,19 @@ function App() {
               <div>
                 <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-text)', marginBottom: 8, display: 'block' }}>Payment Method</label>
                 <div className="payment-options">
-                  {[['paypal','💳 PayPal'],['bank_transfer','🏦 Bank Transfer'],['cash_on_delivery','💵 Cash on Delivery']].map(([val, label]) => (
-                    <label key={val} className={`payment-option ${checkoutPayment === val ? 'selected' : ''}`}>
-                      <input type="radio" name="payment" value={val} checked={checkoutPayment === val} onChange={() => setCheckoutPayment(val)} />
-                      <span>{label}</span>
-                    </label>
-                  ))}
+                  {[['paypal','💳 PayPal'],['bank_transfer','🏦 Bank Transfer'],['cash_on_delivery','💵 Cash on Delivery']].map(([val, label]) => {
+                    const isAvailable = availablePayments.length === 0 || availablePayments.includes(val);
+                    return (
+                      <label key={val} className={`payment-option ${checkoutPayment === val ? 'selected' : ''} ${!isAvailable ? 'unavailable' : ''}`}
+                        style={{ opacity: isAvailable ? 1 : 0.4, cursor: isAvailable ? 'pointer' : 'not-allowed' }}>
+                        <input type="radio" name="payment" value={val}
+                          checked={checkoutPayment === val}
+                          disabled={!isAvailable}
+                          onChange={() => isAvailable && setCheckoutPayment(val)} />
+                        <span>{label} {!isAvailable && '(not available)'}</span>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
               <button type="submit" disabled={loading}>

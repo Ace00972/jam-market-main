@@ -1,4 +1,4 @@
-/// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 //  JAM MARKET — server/controllers/productController.js
 // ═══════════════════════════════════════════════
 const pool = require('../db');
@@ -61,14 +61,17 @@ const updateProduct = async (req, res) => {
     const shippingCompany = deliveryType === 'third_party' ? (shipping_company || null) : null;
     const shippingFee     = deliveryType === 'own' ? (parseFloat(shipping_fee) || 0) : 0;
 
+    // Auto clear sold_out if farmer adds stock
+    const soldOut = parseInt(quantity) <= 0 ? 1 : 0;
+
     const [result] = await pool.query(
       `UPDATE products 
        SET name=?, description=?, price=?, wholesale_price=?, wholesale_min_quantity=?,
-           quantity=?, location=?, shipping_fee=?, delivery_type=?, shipping_company=?
+           quantity=?, sold_out=?, location=?, shipping_fee=?, delivery_type=?, shipping_company=?
        WHERE id=? AND farmer_id=?`,
       [
         name, description, price, wholesale_price || null,
-        wholesale_min_quantity || 10, quantity, location,
+        wholesale_min_quantity || 10, quantity, soldOut, location,
         shippingFee, deliveryType, shippingCompany,
         req.params.id, req.user.id
       ]
