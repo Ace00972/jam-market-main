@@ -750,6 +750,14 @@ function App() {
     finally { setLoading(false); }
   }, []);
 
+  // Notify farmer if they have products but no payment info
+  useEffect(() => {
+    if (!isLoggedIn || user?.role !== 'farmer' || !paymentInfoLoaded) return;
+    if (products.length > 0 && (!myPaymentInfo || (!myPaymentInfo.bank_name && !myPaymentInfo.paypal_email && !myPaymentInfo.cashapp_tag && !myPaymentInfo.other_payment))) {
+      setError('⚠️ You have products listed but no payment method set up! Customers cannot buy from you until you add your payment info. Go to Payment Settings now.');
+    }
+  }, [isLoggedIn, user, products, myPaymentInfo, paymentInfoLoaded]);
+
   useEffect(() => { if (isLoggedIn) fetchProducts(); }, [isLoggedIn, fetchProducts]);
 
   const fetchInbox = useCallback(async () => {
@@ -1250,7 +1258,6 @@ function App() {
                 <option value="">Select your role</option>
                 <option value="farmer">Farmer (Seller)</option>
                 <option value="customer">Customer (Buyer)</option>
-                <option value="service_provider">Service Provider</option>
               </select>
               <input name="location" placeholder="Your location (parish)" required />
               <input name="email" type="email" placeholder="Email address" required />
@@ -1416,6 +1423,12 @@ function App() {
               <p><strong>Seller:</strong> {selectedProduct.farmer_name}</p>
               <p><strong>Location:</strong> {selectedProduct.location}</p>
               <p><strong>In stock:</strong> {selectedProduct.quantity} units</p>
+              {/* Payment warning for customers */}
+              {isLoggedIn && !isOwner(selectedProduct) && user?.role === 'customer' && farmerPaymentInfo === null && (
+                <div className="payment-warning-box">
+                  ⚠️ This farmer has not set up their payment information yet. You cannot place an order until they do. You can message them to let them know.
+                </div>
+              )}
               {selectedProduct.delivery_type === 'third_party' && getShippingCompany(selectedProduct.shipping_company) && (
                 <div className="shipping-info-box">
                   <p>📦 This seller uses <strong>{getShippingCompany(selectedProduct.shipping_company).label}</strong> for delivery.</p>
@@ -1435,7 +1448,9 @@ function App() {
                 {isLoggedIn && !isOwner(selectedProduct) && user?.role === 'customer' && (
                   selectedProduct.sold_out || selectedProduct.quantity <= 0
                     ? <button disabled className="btn-sold-out">🚫 Sold Out</button>
-                    : <button onClick={() => handleCheckout(selectedProduct)}>🛒 Buy Now</button>
+                    : farmerPaymentInfo === null
+                      ? <button disabled className="btn-sold-out" title="Farmer has not set up payment yet">⚠️ Payment Not Set Up</button>
+                      : <button onClick={() => handleCheckout(selectedProduct)}>🛒 Buy Now</button>
                 )}
                 {isLoggedIn && !isOwner(selectedProduct) && (
                   <button className="btn-alt" onClick={() => handleStartChat({ id: selectedProduct.farmer_id, name: selectedProduct.farmer_name })}>💬 Message Seller</button>

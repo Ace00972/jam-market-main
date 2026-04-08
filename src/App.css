@@ -3550,3 +3550,15 @@ select {
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* Payment warning box */
+.payment-warning-box {
+  background: #fffbeb;
+  border: 1.5px solid #fbbf24;
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #92400e;
+  line-height: 1.5;
+  margin: 8px 0;
+}
