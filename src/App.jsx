@@ -722,6 +722,8 @@ function App() {
   const [paymentInfoLoaded, setPaymentInfoLoaded]   = useState(false);
   const [announcements, setAnnouncements]         = useState([]);
   const [showAnnouncement, setShowAnnouncement]   = useState(false);
+  const [chatOverlayOpen, setChatOverlayOpen]         = useState(false);
+  const [chatOverlayThread, setChatOverlayThread]   = useState([]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -1059,6 +1061,82 @@ function App() {
   return (
     <div className="site-wrapper">
 
+      {/* FLOATING CHAT BUTTON */}
+      {isLoggedIn && (
+        <div className="floating-chat-btn" onClick={() => setChatOverlayOpen(o => !o)}>
+          💬
+          {unreadMsgCount > 0 && <span className="floating-chat-badge">{unreadMsgCount}</span>}
+        </div>
+      )}
+
+      {/* CHAT OVERLAY */}
+      {isLoggedIn && chatOverlayOpen && (
+        <div className="chat-overlay">
+          <div className="chat-overlay-header">
+            <span>Messages</span>
+            <button className="chat-overlay-close" onClick={() => setChatOverlayOpen(false)}>✕</button>
+          </div>
+          <div className="chat-overlay-list">
+            {myProvider && (
+              <div className="chat-overlay-item" onClick={() => {
+                setChatUser({ id: myProvider.id, name: myProvider.name + ' (Support)' });
+                handleStartChat({ id: myProvider.id, name: myProvider.name + ' (Support)' });
+                setChatOverlayOpen(false);
+              }}>
+                <div className="chat-overlay-avatar">🎧</div>
+                <div className="chat-overlay-info">
+                  <strong>Support — {myProvider.name}</strong>
+                  <span>Your dedicated support agent</span>
+                </div>
+              </div>
+            )}
+            {messages.filter(m => {
+              const otherId = m.sender_id === user.id ? m.receiver_id : m.sender_id;
+              return !myProvider || otherId !== myProvider.id;
+            }).map(m => (
+              <div key={m.id} className="chat-overlay-item" onClick={() => {
+                const otherId = m.sender_id === user.id ? m.receiver_id : m.sender_id;
+                setChatUser({ id: otherId, name: m.other_name });
+                handleStartChat({ id: otherId, name: m.other_name });
+                setChatOverlayOpen(false);
+              }}>
+                <div className="chat-overlay-avatar">💬</div>
+                <div className="chat-overlay-info">
+                  <strong>{m.other_name}</strong>
+                  {m.unread_count > 0 && <span className="chat-overlay-unread">{m.unread_count}</span>}
+                </div>
+              </div>
+            ))}
+            {messages.length === 0 && !myProvider && (
+              <p className="chat-overlay-empty">No messages yet. Start a conversation!</p>
+            )}
+          </div>
+          <form className="chat-overlay-quick" onSubmit={async (e) => {
+            e.preventDefault();
+            const input = e.target.elements.quickMsg.value.trim();
+            if (!input || !chatUser) return;
+            setLoading(true);
+            try {
+              await apiFetch('/messages', {
+                method: 'POST',
+                body: JSON.stringify({ receiver_id: chatUser.id, message: input })
+              });
+              const data = await apiFetch(`/messages/${chatUser.id}`);
+              setChatOverlayThread(data);
+              e.target.elements.quickMsg.value = '';
+            } catch (err) { setError(err.message); }
+            finally { setLoading(false); }
+          }}>
+            {chatUser && (
+              <>
+                <input name="quickMsg" placeholder={`Reply to ${chatUser.name}...`} />
+                <button type="submit">Send</button>
+              </>
+            )}
+          </form>
+        </div>
+      )}
+
       {/* NAVIGATION */}
       <nav className="main-nav">
         <div className="logo" onClick={() => setPage('home')}>JAM MARKET</div>
@@ -1069,18 +1147,11 @@ function App() {
           {isLoggedIn && isAdmin() && <li onClick={() => setPage('adminPanel')} style={{ color: 'var(--jamaica-gold)' }}>⚙️ Admin</li>}
           {isLoggedIn && <li onClick={() => setPage('farmersMap')}>🗺️ Map</li>}
           {isLoggedIn && (
-            <li onClick={() => { setPage('messages'); setUnreadMsgCount(0); }} className="nav-orders-item">
-              Messages
-              {unreadMsgCount > 0 && <span className="nav-badge">{unreadMsgCount}</span>}
-            </li>
-          )}
-          {isLoggedIn && (
             <li onClick={() => { setPage('orders'); if(user?.role === 'farmer') markOrdersRead(); }} className="nav-orders-item">
               My Orders
               {user?.role === 'farmer' && newOrderCount > 0 && (
                 <span className="nav-badge">{newOrderCount}</span>
-              )}
-            </li>
+              )}</li>
           )}
         </ul>
         <div className="auth-buttons">
