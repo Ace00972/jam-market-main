@@ -773,14 +773,58 @@ function App() {
     if (isLoggedIn && page === 'messages') fetchInbox();
   }, [isLoggedIn, page, fetchInbox]);
 
+  // ── NOTIFICATION SOUNDS ───────────────────────
+  const playMessageSound = useCallback(() => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      // Two soft rising tones — "ding ding"
+      [0, 0.18].forEach((delay, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(i === 0 ? 880 : 1100, ctx.currentTime + delay);
+        gain.gain.setValueAtTime(0, ctx.currentTime + delay);
+        gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + delay + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.35);
+        osc.start(ctx.currentTime + delay);
+        osc.stop(ctx.currentTime + delay + 0.35);
+      });
+    } catch (_) {}
+  }, []);
+
+  const playOrderSound = useCallback(() => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      // Three ascending tones — "ka-ching" feel
+      [0, 0.15, 0.30].forEach((delay, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime([660, 880, 1320][i], ctx.currentTime + delay);
+        gain.gain.setValueAtTime(0, ctx.currentTime + delay);
+        gain.gain.linearRampToValueAtTime(0.35, ctx.currentTime + delay + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.45);
+        osc.start(ctx.currentTime + delay);
+        osc.stop(ctx.currentTime + delay + 0.45);
+      });
+    } catch (_) {}
+  }, []);
+
   // ── NEW ORDER NOTIFICATIONS ────────────────────
+  const prevOrderCount = useRef(0);
   const fetchNewOrderCount = useCallback(async () => {
     if (!isLoggedIn || user?.role !== 'farmer') return;
     try {
       const data = await apiFetch('/orders/unread-count');
+      if (data.count > prevOrderCount.current) playOrderSound();
+      prevOrderCount.current = data.count;
       setNewOrderCount(data.count);
     } catch (_) {}
-  }, [isLoggedIn, user]);
+  }, [isLoggedIn, user, playOrderSound]);
 
   // Poll every 30 seconds for new orders
   useEffect(() => {
@@ -927,7 +971,7 @@ function App() {
     try { const data = await apiFetch(`/messages/${otherUser.id}`); setChatThread(data); }
     catch (err) { setError(err.message); }
     finally { setLoading(false); }
-    setPage('chat');
+    setPage('messages');
   };
 
   const handleSendMessage = async (e) => {
@@ -955,13 +999,16 @@ function App() {
   );
 
   // ── MESSAGE NOTIFICATIONS ────────────────────
+  const prevMsgCount = useRef(0);
   const fetchUnreadMsgCount = useCallback(async () => {
     if (!isLoggedIn) return;
     try {
       const data = await apiFetch('/messages/unread-count');
+      if (data.count > prevMsgCount.current) playMessageSound();
+      prevMsgCount.current = data.count;
       setUnreadMsgCount(data.count);
     } catch (_) {}
-  }, [isLoggedIn]);
+  }, [isLoggedIn, playMessageSound]);
 
   // Poll every 30 seconds for new messages
   useEffect(() => {
@@ -1063,7 +1110,13 @@ function App() {
 
       {/* FLOATING CHAT BUTTON */}
       {isLoggedIn && (
-        <div className="floating-chat-btn" onClick={() => setChatOverlayOpen(o => !o)}>
+        <div className="floating-chat-btn" onClick={async () => {
+          const opening = !chatOverlayOpen;
+          setChatOverlayOpen(opening);
+          if (opening) {
+            try { const data = await apiFetch('/messages/inbox'); setMessages(data); } catch (_) {}
+          }
+        }}>
           💬
           {unreadMsgCount > 0 && <span className="floating-chat-badge">{unreadMsgCount}</span>}
         </div>
@@ -1830,76 +1883,102 @@ function App() {
 
         {isLoggedIn && page === 'farmersMap' && <FarmersMapPage />}
 
-        {isLoggedIn && page === 'messages' && (
-          <section className="welcome-screen">
-            <div className="welcome-card">
-              <h2>Your Messages</h2>
+        {isLoggedIn && (page === 'messages' || page === 'chat') && (
+          <div className="messages-layout">
 
-              {/* Permanent Support Chat */}
+            {/* ── SIDEBAR ── */}
+            <aside className="messages-sidebar">
+              <div className="messages-sidebar-header">
+                <h3>💬 Messages</h3>
+              </div>
+
+              {/* Support */}
               {myProvider && (
-                <div className="support-chat-banner" onClick={() => handleStartChat({ id: myProvider.id, name: myProvider.name + ' (Support)' })}>
-                  <div className="support-avatar">🎧</div>
-                  <div className="support-info">
+                <div
+                  className={`messages-sidebar-item support ${chatUser?.id === myProvider.id ? 'active' : ''}`}
+                  onClick={() => handleStartChat({ id: myProvider.id, name: myProvider.name + ' (Support)' })}
+                >
+                  <div className="messages-sidebar-avatar support-avatar-sm">🎧</div>
+                  <div className="messages-sidebar-info">
                     <strong>Support — {myProvider.name}</strong>
-                    <span>Your dedicated support agent • Click to chat</span>
+                    <span>● Online</span>
                   </div>
-                  <div className="support-online">● Online</div>
                 </div>
               )}
 
-              {loading && <p>Loading…</p>}
-              {!loading && messages.length === 0 && <p style={{ color: 'var(--muted-text)', marginTop: 16 }}>No other messages yet.</p>}
-              <ul className="messages-list" style={{ marginTop: 16 }}>
-                {messages.filter(m => {
-                  const otherId = m.sender_id === user.id ? m.receiver_id : m.sender_id;
-                  return !myProvider || otherId !== myProvider.id;
-                }).map(m => (
-                  <li key={m.id}>
-                    <button onClick={() => handleStartChat({
-                      id: m.sender_id === user.id ? m.receiver_id : m.sender_id,
-                      name: m.other_name,
-                    })}>
-                      💬 Chat with {m.other_name}
-                      {m.unread_count > 0 && <span className="msg-unread-dot">{m.unread_count}</span>}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </section>
-        )}
+              <div className="messages-sidebar-divider" />
 
-        {isLoggedIn && page === 'chat' && (
-          <section className="welcome-screen">
-            <div className="welcome-card">
-              <h2>Chat with {chatUser?.name}</h2>
-              <div className="chat-thread">
-                {chatThread.map((msg, idx) => (
-                  <div key={idx} className="chat-message"
-                    style={{
-                      alignSelf: msg.sender_id === user.id ? 'flex-end' : 'flex-start',
-                      background: msg.sender_id === user.id ? 'var(--primary-green)' : 'var(--white)',
-                      color: msg.sender_id === user.id ? 'white' : 'var(--dark-text)',
-                    }}>
-                    <strong style={{ color: msg.sender_id === user.id ? 'rgba(255,255,255,0.8)' : 'var(--primary-green)' }}>
-                      {msg.sender_id === user.id ? 'You' : chatUser?.name}
-                    </strong>
-                    {msg.message}
+              {loading && <p className="messages-sidebar-empty">Loading…</p>}
+              {!loading && messages.filter(m => {
+                const otherId = m.sender_id === user.id ? m.receiver_id : m.sender_id;
+                return !myProvider || otherId !== myProvider.id;
+              }).length === 0 && (
+                <p className="messages-sidebar-empty">No other conversations yet.</p>
+              )}
+              {messages.filter(m => {
+                const otherId = m.sender_id === user.id ? m.receiver_id : m.sender_id;
+                return !myProvider || otherId !== myProvider.id;
+              }).map(m => {
+                const otherId = m.sender_id === user.id ? m.receiver_id : m.sender_id;
+                return (
+                  <div
+                    key={m.id}
+                    className={`messages-sidebar-item ${chatUser?.id === otherId ? 'active' : ''}`}
+                    onClick={() => handleStartChat({ id: otherId, name: m.other_name })}
+                  >
+                    <div className="messages-sidebar-avatar">
+                      {m.other_name?.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="messages-sidebar-info">
+                      <strong>{m.other_name}</strong>
+                      {m.unread_count > 0 && <span className="msg-unread-dot">{m.unread_count}</span>}
+                    </div>
                   </div>
-                ))}
-                {chatThread.length === 0 && (
-                  <p style={{ color: 'var(--muted-text)', textAlign: 'center', margin: 'auto' }}>No messages yet. Say hello!</p>
-                )}
-              </div>
-              <form className="chat-form" onSubmit={handleSendMessage}>
-                <input value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="Type your message…" required />
-                <button type="submit">Send</button>
-              </form>
-              <div style={{ marginTop: 16 }}>
-                <button className="btn-alt" onClick={() => setPage('messages')}>← Back</button>
-              </div>
+                );
+              })}
+            </aside>
+
+            {/* ── CHAT PANEL ── */}
+            <div className="messages-chat-panel">
+              {!chatUser ? (
+                <div className="messages-chat-empty">
+                  <span>💬</span>
+                  <p>Select a conversation to start chatting</p>
+                </div>
+              ) : (
+                <>
+                  <div className="messages-chat-header">
+                    <div className="messages-chat-header-avatar">
+                      {chatUser.name?.charAt(0).toUpperCase()}
+                    </div>
+                    <strong>{chatUser.name}</strong>
+                  </div>
+                  <div className="chat-thread">
+                    {chatThread.map((msg, idx) => (
+                      <div key={idx} className="chat-message"
+                        style={{
+                          alignSelf: msg.sender_id === user.id ? 'flex-end' : 'flex-start',
+                          background: msg.sender_id === user.id ? 'var(--primary-green)' : 'var(--white)',
+                          color: msg.sender_id === user.id ? 'white' : 'var(--dark-text)',
+                        }}>
+                        <strong style={{ color: msg.sender_id === user.id ? 'rgba(255,255,255,0.8)' : 'var(--primary-green)' }}>
+                          {msg.sender_id === user.id ? 'You' : chatUser?.name}
+                        </strong>
+                        {msg.message}
+                      </div>
+                    ))}
+                    {chatThread.length === 0 && (
+                      <p style={{ color: 'var(--muted-text)', textAlign: 'center', margin: 'auto' }}>No messages yet. Say hello!</p>
+                    )}
+                  </div>
+                  <form className="chat-form" onSubmit={handleSendMessage}>
+                    <input value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder={`Message ${chatUser.name}…`} required />
+                    <button type="submit">Send</button>
+                  </form>
+                </>
+              )}
             </div>
-          </section>
+          </div>
         )}
 
       </div>
