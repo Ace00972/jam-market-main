@@ -1073,67 +1073,93 @@ function App() {
       {isLoggedIn && chatOverlayOpen && (
         <div className="chat-overlay">
           <div className="chat-overlay-header">
-            <span>Messages</span>
+            {chatUser ? (
+              <>
+                <button className="chat-overlay-back" onClick={() => { setChatUser(null); setChatOverlayThread([]); }}>← </button>
+                <span>{chatUser.name}</span>
+              </>
+            ) : (
+              <span>💬 Messages</span>
+            )}
             <button className="chat-overlay-close" onClick={() => setChatOverlayOpen(false)}>✕</button>
           </div>
-          <div className="chat-overlay-list">
-            {myProvider && (
-              <div className="chat-overlay-item" onClick={() => {
-                setChatUser({ id: myProvider.id, name: myProvider.name + ' (Support)' });
-                handleStartChat({ id: myProvider.id, name: myProvider.name + ' (Support)' });
-                setChatOverlayOpen(false);
-              }}>
-                <div className="chat-overlay-avatar">🎧</div>
-                <div className="chat-overlay-info">
-                  <strong>Support — {myProvider.name}</strong>
-                  <span>Your dedicated support agent</span>
+
+          {/* CONTACT LIST VIEW */}
+          {!chatUser && (
+            <div className="chat-overlay-list">
+              {myProvider && (
+                <div className="chat-overlay-item" onClick={async () => {
+                  const contact = { id: myProvider.id, name: myProvider.name + ' (Support)' };
+                  setChatUser(contact);
+                  try {
+                    const data = await apiFetch(`/messages/${myProvider.id}`);
+                    setChatOverlayThread(data);
+                  } catch {}
+                }}>
+                  <div className="chat-overlay-avatar">🎧</div>
+                  <div className="chat-overlay-info">
+                    <strong>Support — {myProvider.name}</strong>
+                    <span>Your dedicated support agent</span>
+                  </div>
                 </div>
-              </div>
-            )}
-            {messages.filter(m => {
-              const otherId = m.sender_id === user.id ? m.receiver_id : m.sender_id;
-              return !myProvider || otherId !== myProvider.id;
-            }).map(m => (
-              <div key={m.id} className="chat-overlay-item" onClick={() => {
+              )}
+              {messages.filter(m => {
                 const otherId = m.sender_id === user.id ? m.receiver_id : m.sender_id;
-                setChatUser({ id: otherId, name: m.other_name });
-                handleStartChat({ id: otherId, name: m.other_name });
-                setChatOverlayOpen(false);
-              }}>
-                <div className="chat-overlay-avatar">💬</div>
-                <div className="chat-overlay-info">
-                  <strong>{m.other_name}</strong>
-                  {m.unread_count > 0 && <span className="chat-overlay-unread">{m.unread_count}</span>}
+                return !myProvider || otherId !== myProvider.id;
+              }).map(m => (
+                <div key={m.id} className="chat-overlay-item" onClick={async () => {
+                  const otherId = m.sender_id === user.id ? m.receiver_id : m.sender_id;
+                  const contact = { id: otherId, name: m.other_name };
+                  setChatUser(contact);
+                  try {
+                    const data = await apiFetch(`/messages/${otherId}`);
+                    setChatOverlayThread(data);
+                  } catch {}
+                }}>
+                  <div className="chat-overlay-avatar">💬</div>
+                  <div className="chat-overlay-info">
+                    <strong>{m.other_name}</strong>
+                    {m.unread_count > 0 && <span className="chat-overlay-unread">{m.unread_count}</span>}
+                  </div>
                 </div>
+              ))}
+              {messages.length === 0 && !myProvider && (
+                <p className="chat-overlay-empty">No messages yet. Start a conversation from a product page!</p>
+              )}
+            </div>
+          )}
+
+          {/* THREAD VIEW */}
+          {chatUser && (
+            <>
+              <div className="chat-overlay-thread" ref={el => { if (el) el.scrollTop = el.scrollHeight; }}>
+                {chatOverlayThread.length === 0 && (
+                  <p className="chat-overlay-empty">No messages yet. Say hello!</p>
+                )}
+                {chatOverlayThread.map((msg, i) => (
+                  <div key={i} className={`chat-overlay-msg ${msg.sender_id === user.id ? 'mine' : 'theirs'}`}>
+                    <span>{msg.message}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-            {messages.length === 0 && !myProvider && (
-              <p className="chat-overlay-empty">No messages yet. Start a conversation!</p>
-            )}
-          </div>
-          <form className="chat-overlay-quick" onSubmit={async (e) => {
-            e.preventDefault();
-            const input = e.target.elements.quickMsg.value.trim();
-            if (!input || !chatUser) return;
-            setLoading(true);
-            try {
-              await apiFetch('/messages', {
-                method: 'POST',
-                body: JSON.stringify({ receiver_id: chatUser.id, message: input })
-              });
-              const data = await apiFetch(`/messages/${chatUser.id}`);
-              setChatOverlayThread(data);
-              e.target.elements.quickMsg.value = '';
-            } catch (err) { setError(err.message); }
-            finally { setLoading(false); }
-          }}>
-            {chatUser && (
-              <>
-                <input name="quickMsg" placeholder={`Reply to ${chatUser.name}...`} />
+              <form className="chat-overlay-quick" onSubmit={async (e) => {
+                e.preventDefault();
+                const input = e.target.elements.quickMsg.value.trim();
+                if (!input) return;
+                try {
+                  const sent = await apiFetch('/messages', {
+                    method: 'POST',
+                    body: JSON.stringify({ receiver_id: chatUser.id, message: input })
+                  });
+                  setChatOverlayThread(prev => [...prev, { ...sent, sender_id: user.id }]);
+                  e.target.elements.quickMsg.value = '';
+                } catch (err) { setError(err.message); }
+              }}>
+                <input name="quickMsg" placeholder={`Message ${chatUser.name}...`} autoFocus />
                 <button type="submit">Send</button>
-              </>
-            )}
-          </form>
+              </form>
+            </>
+          )}
         </div>
       )}
 
@@ -1266,6 +1292,38 @@ function App() {
           </ul>
         </div>
       )}
+
+      {/* PAGE TAB BREADCRUMB */}
+      {page !== 'home' && (() => {
+        const pageLabels = {
+          products:        { icon: '🛒', label: 'Marketplace' },
+          login:           { icon: '🔑', label: 'Login' },
+          register:        { icon: '📝', label: 'Register' },
+          welcome:         { icon: '👋', label: 'Welcome' },
+          agriHub:         { icon: '🌿', label: 'Agri Hub' },
+          farmersMap:      { icon: '🗺️', label: 'Farmers Map' },
+          analytics:       { icon: '📊', label: 'Analytics Dashboard' },
+          smartPrice:      { icon: '💡', label: 'Smart Price Tool' },
+          orders:          { icon: '📋', label: 'My Orders' },
+          messages:        { icon: '💬', label: 'Messages' },
+          chat:            { icon: '💬', label: chatUser ? `Chat — ${chatUser.name}` : 'Chat' },
+          supportChat:     { icon: '🎧', label: 'Support Chat' },
+          paymentSettings: { icon: '💳', label: 'Payment Settings' },
+          adminPanel:      { icon: '⚙️', label: 'Admin Panel' },
+          productDetail:   { icon: '🌱', label: selectedProduct?.name || 'Product Detail' },
+          checkout:        { icon: '🧾', label: 'Checkout' },
+          orderSuccess:    { icon: '✅', label: 'Order Confirmed' },
+        };
+        const current = pageLabels[page];
+        if (!current) return null;
+        return (
+          <div className="page-tab-bar">
+            <span className="page-tab-home" onClick={() => setPage('home')}>JAM MARKET</span>
+            <span className="page-tab-sep">›</span>
+            <span className="page-tab-current">{current.icon} {current.label}</span>
+          </div>
+        );
+      })()}
 
       {error && (
         <div className="error-banner">

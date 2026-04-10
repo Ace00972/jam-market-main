@@ -3563,9 +3563,94 @@ select {
   margin: 8px 0;
 }
 
+/* ── PAGE TAB BAR ───────────────────────────── */
+.page-tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  background: var(--white);
+  border-bottom: 1px solid var(--mid-gray);
+  font-size: 13px;
+}
+
+.page-tab-home {
+  color: var(--primary-green);
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  font-size: 12px;
+}
+
+.page-tab-home:hover {
+  text-decoration: underline;
+}
+
+.page-tab-sep {
+  color: var(--muted-text);
+  font-size: 14px;
+}
+
+.page-tab-current {
+  background: var(--primary-green);
+  color: white;
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
 /* =============================================
    FLOATING CHAT BUTTON & OVERLAY
    ============================================= */
+.chat-overlay-back {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 2px 6px;
+  margin-right: 4px;
+  border-radius: 4px;
+}
+
+.chat-overlay-back:hover {
+  background: rgba(255,255,255,0.15);
+}
+
+.chat-overlay-thread {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chat-overlay-msg {
+  max-width: 80%;
+  padding: 8px 12px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.chat-overlay-msg.mine {
+  align-self: flex-end;
+  background: var(--primary-green);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-overlay-msg.theirs {
+  align-self: flex-start;
+  background: var(--light-gray);
+  color: var(--dark-text);
+  border-bottom-left-radius: 4px;
+}
+
 .floating-chat-btn {
   position: fixed;
   bottom: 24px;
