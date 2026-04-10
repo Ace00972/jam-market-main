@@ -737,6 +737,30 @@ function App() {
   useEffect(() => { setMenuOpen(false); }, [page]);
 
   useEffect(() => {
+    const titles = {
+      home:            'Jam Market',
+      products:        'Jam Market | Marketplace',
+      login:           'Jam Market | Login',
+      register:        'Jam Market | Register',
+      welcome:         'Jam Market | Welcome',
+      agriHub:         'Jam Market | Agri Hub',
+      farmersMap:      'Jam Market | Farmers Map',
+      analytics:       'Jam Market | Analytics',
+      smartPrice:      'Jam Market | Smart Price Tool',
+      orders:          'Jam Market | My Orders',
+      messages:        'Jam Market | Messages',
+      chat:            'Jam Market | Messages',
+      supportChat:     'Jam Market | Support Chat',
+      paymentSettings: 'Jam Market | Payment Settings',
+      adminPanel:      'Jam Market | Admin Panel',
+      productDetail:   'Jam Market | Product',
+      checkout:        'Jam Market | Checkout',
+      orderSuccess:    'Jam Market | Order Confirmed',
+    };
+    document.title = titles[page] || 'Jam Market';
+  }, [page]);
+
+  useEffect(() => {
     const token = localStorage.getItem('jm_token');
     const savedUser = localStorage.getItem('jm_user');
     if (token && savedUser) {
@@ -1253,43 +1277,34 @@ function App() {
                     <div><strong>{user?.name}</strong><span>{user?.role}</span><span>{user?.location}</span></div>
                   </div>
                   <div className="profile-dropdown-divider" />
-                  {user?.role === 'farmer' && (
-                    <button className="profile-dropdown-item" onClick={() => { setPage('analytics'); setProfileOpen(false); }}>
-                      📊 Analytics Dashboard
-                    </button>
-                  )}
-                  <button className="profile-dropdown-item" onClick={() => { setPage('smartPrice'); setProfileOpen(false); }}>
-                    💡 Smart Price Tool
-                  </button>
-                  <button className="profile-dropdown-item" onClick={() => { setPage('agriHub'); setProfileOpen(false); }}>
-                    🌿 Agricultural Hub
-                  </button>
-                  <button className="profile-dropdown-item" onClick={() => { setPage('farmersMap'); setProfileOpen(false); }}>
-                    🗺️ Farmers Map
-                  </button>
-                  <div className="profile-dropdown-divider" />
-                  {myProvider && (
-                    <button className="profile-dropdown-item" onClick={() => {
-                      handleStartChat({ id: myProvider.id, name: myProvider.name + ' (Support)' });
-                      setPage('supportChat');
-                      setProfileOpen(false);
-                    }}>
-                      🎧 Support Chat
-                    </button>
-                  )}
+
                   <button className="profile-dropdown-item" onClick={() => { setPage('orders'); setProfileOpen(false); if(user?.role === 'farmer') markOrdersRead(); }}>
                     📋 My Orders
-                    {newOrderCount > 0 && user?.role === 'farmer' && (
-                      <span className="dropdown-badge">{newOrderCount}</span>
-                    )}
+                    {newOrderCount > 0 && user?.role === 'farmer' && <span className="dropdown-badge">{newOrderCount}</span>}
                   </button>
                   <button className="profile-dropdown-item" onClick={() => { setPage('messages'); setProfileOpen(false); setUnreadMsgCount(0); }}>
                     💬 Messages
                     {unreadMsgCount > 0 && <span className="dropdown-badge">{unreadMsgCount}</span>}
                   </button>
+
+                  <div className="profile-dropdown-divider" />
+
+                  {user?.role === 'farmer' && (
+                    <button className="profile-dropdown-item" onClick={() => { setPage('analytics'); setProfileOpen(false); }}>
+                      📊 Analytics
+                    </button>
+                  )}
+                  <button className="profile-dropdown-item" onClick={() => { setPage('smartPrice'); setProfileOpen(false); }}>
+                    💡 Smart Price
+                  </button>
                   {user?.role === 'farmer' && (
                     <button className="profile-dropdown-item" onClick={() => { setPage('paymentSettings'); setProfileOpen(false); }}>
                       💳 Payment Settings
+                    </button>
+                  )}
+                  {myProvider && (
+                    <button className="profile-dropdown-item" onClick={() => { handleStartChat({ id: myProvider.id, name: myProvider.name + ' (Support)' }); setProfileOpen(false); }}>
+                      🎧 Support
                     </button>
                   )}
 
