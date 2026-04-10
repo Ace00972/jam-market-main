@@ -20,7 +20,7 @@
   --radius-md: 14px;
   --radius-lg: 20px;
   --transition: 0.25s ease;
-  --nav-height: 68px;
+  --nav-height: 56px;
 }
 
 *,
@@ -65,70 +65,75 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 5%;
-  height: var(--nav-height);
+  padding: 0 32px;
+  height: 56px;
   background: var(--primary-green);
   color: var(--white);
-  box-shadow: var(--shadow-md);
   position: sticky;
   top: 0;
   z-index: 100;
-  gap: 12px;
+  gap: 16px;
+  border-bottom: 2px solid var(--primary-green-light);
 }
 
 .logo {
   font-family: 'Playfair Display', serif;
-  font-size: 1.4rem;
+  font-size: 1.25rem;
   font-weight: 800;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
   cursor: pointer;
   color: var(--jamaica-gold);
   text-transform: uppercase;
   user-select: none;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .nav-links {
   display: flex;
   list-style: none;
-  gap: 36px;
+  gap: 4px;
+  flex: 1;
+  justify-content: center;
 }
 
 .nav-links li {
   cursor: pointer;
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.85);
-  transition: color var(--transition);
-  padding: 4px 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.82);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: 4px;
   position: relative;
   white-space: nowrap;
-}
-
-.nav-links li::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 0;
-  height: 2px;
-  background: var(--jamaica-gold);
-  transition: width var(--transition);
+  transition: background var(--transition), color var(--transition);
 }
 
 .nav-links li:hover {
+  background: rgba(255, 255, 255, 0.1);
   color: var(--jamaica-gold);
 }
 
-.nav-links li:hover::after {
-  width: 100%;
+.nav-links li::after {
+  display: none;
 }
 
 .auth-buttons {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   align-items: center;
   flex-shrink: 0;
+}
+
+/* Slim login/register buttons inside nav */
+.auth-buttons .btn-login {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  border-radius: 5px;
 }
 
 /* =============================================
@@ -925,30 +930,30 @@ select {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: transparent;
-  border: 1.5px solid rgba(255,255,255,0.3);
-  border-radius: 24px;
-  padding: 6px 12px 6px 6px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 6px;
+  padding: 5px 10px 5px 6px;
   cursor: pointer;
   color: white;
   transition: all 0.2s;
 }
 
 .profile-icon-btn:hover {
+  background: rgba(255,255,255,0.18);
   border-color: var(--jamaica-gold);
-  background: rgba(255,255,255,0.08);
   transform: none;
   box-shadow: none;
 }
 
 .profile-avatar {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--jamaica-gold);
   color: var(--primary-green);
   font-weight: 700;
-  font-size: 15px;
+  font-size: 13px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -962,7 +967,7 @@ select {
 }
 
 .profile-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: white;
   max-width: 100px;
@@ -972,7 +977,7 @@ select {
 }
 
 .profile-caret {
-  font-size: 10px;
+  font-size: 9px;
   color: rgba(255,255,255,0.6);
 }
 
