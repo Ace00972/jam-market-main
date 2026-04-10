@@ -116,6 +116,11 @@ body {
   color: var(--jamaica-gold);
 }
 
+.nav-links li.active {
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--jamaica-gold);
+}
+
 .nav-links li::after {
   display: none;
 }
@@ -3768,43 +3773,6 @@ select {
   margin: 8px 0;
 }
 
-/* ── PAGE TAB BAR ───────────────────────────── */
-.page-tab-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 24px;
-  background: var(--white);
-  border-bottom: 1px solid var(--mid-gray);
-  font-size: 13px;
-}
-
-.page-tab-home {
-  color: var(--primary-green);
-  font-weight: 700;
-  cursor: pointer;
-  letter-spacing: 0.5px;
-  font-size: 12px;
-}
-
-.page-tab-home:hover {
-  text-decoration: underline;
-}
-
-.page-tab-sep {
-  color: var(--muted-text);
-  font-size: 14px;
-}
-
-.page-tab-current {
-  background: var(--primary-green);
-  color: white;
-  padding: 3px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-}
 
 /* =============================================
    FLOATING CHAT BUTTON & OVERLAY

@@ -1244,13 +1244,13 @@ function App() {
       <nav className="main-nav">
         <div className="logo" onClick={() => setPage('home')}>JAM MARKET</div>
         <ul className="nav-links desktop-nav">
-          <li onClick={() => setPage('home')}>Home</li>
-          <li onClick={() => { fetchProducts(); setPage('products'); }}>Marketplace</li>
-          {isLoggedIn && <li onClick={() => setPage('agriHub')}>🌿 Agri Hub</li>}
-          {isLoggedIn && isAdmin() && <li onClick={() => setPage('adminPanel')} style={{ color: 'var(--jamaica-gold)' }}>⚙️ Admin</li>}
-          {isLoggedIn && <li onClick={() => setPage('farmersMap')}>🗺️ Map</li>}
+          <li className={page === 'home' ? 'active' : ''} onClick={() => setPage('home')}>Home</li>
+          <li className={page === 'products' || page === 'productDetail' || page === 'checkout' || page === 'orderSuccess' ? 'active' : ''} onClick={() => { fetchProducts(); setPage('products'); }}>Marketplace</li>
+          {isLoggedIn && <li className={page === 'agriHub' ? 'active' : ''} onClick={() => setPage('agriHub')}>🌿 Agri Hub</li>}
+          {isLoggedIn && isAdmin() && <li className={page === 'adminPanel' ? 'active' : ''} onClick={() => setPage('adminPanel')} style={{ color: page === 'adminPanel' ? 'var(--jamaica-gold)' : 'var(--jamaica-gold)' }}>⚙️ Admin</li>}
+          {isLoggedIn && <li className={page === 'farmersMap' ? 'active' : ''} onClick={() => setPage('farmersMap')}>🗺️ Map</li>}
           {isLoggedIn && (
-            <li onClick={() => { setPage('orders'); if(user?.role === 'farmer') markOrdersRead(); }} className="nav-orders-item">
+            <li onClick={() => { setPage('orders'); if(user?.role === 'farmer') markOrdersRead(); }} className={`nav-orders-item ${page === 'orders' ? 'active' : ''}`}>
               My Orders
               {user?.role === 'farmer' && newOrderCount > 0 && (
                 <span className="nav-badge">{newOrderCount}</span>
@@ -1360,38 +1360,6 @@ function App() {
           </ul>
         </div>
       )}
-
-      {/* PAGE TAB BREADCRUMB */}
-      {page !== 'home' && (() => {
-        const pageLabels = {
-          products:        { icon: '🛒', label: 'Marketplace' },
-          login:           { icon: '🔑', label: 'Login' },
-          register:        { icon: '📝', label: 'Register' },
-          welcome:         { icon: '👋', label: 'Welcome' },
-          agriHub:         { icon: '🌿', label: 'Agri Hub' },
-          farmersMap:      { icon: '🗺️', label: 'Farmers Map' },
-          analytics:       { icon: '📊', label: 'Analytics Dashboard' },
-          smartPrice:      { icon: '💡', label: 'Smart Price Tool' },
-          orders:          { icon: '📋', label: 'My Orders' },
-          messages:        { icon: '💬', label: 'Messages' },
-          chat:            { icon: '💬', label: chatUser ? `Chat — ${chatUser.name}` : 'Chat' },
-          supportChat:     { icon: '🎧', label: 'Support Chat' },
-          paymentSettings: { icon: '💳', label: 'Payment Settings' },
-          adminPanel:      { icon: '⚙️', label: 'Admin Panel' },
-          productDetail:   { icon: '🌱', label: selectedProduct?.name || 'Product Detail' },
-          checkout:        { icon: '🧾', label: 'Checkout' },
-          orderSuccess:    { icon: '✅', label: 'Order Confirmed' },
-        };
-        const current = pageLabels[page];
-        if (!current) return null;
-        return (
-          <div className="page-tab-bar">
-            <span className="page-tab-home" onClick={() => setPage('home')}>JAM MARKET</span>
-            <span className="page-tab-sep">›</span>
-            <span className="page-tab-current">{current.icon} {current.label}</span>
-          </div>
-        );
-      })()}
 
       {error && (
         <div className="error-banner">
