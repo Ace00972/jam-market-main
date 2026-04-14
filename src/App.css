@@ -87,6 +87,9 @@ body {
   user-select: none;
   flex-shrink: 0;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .nav-links {
@@ -213,21 +216,63 @@ button[type="submit"]:hover,
 /* =============================================
    5. HERO / HOME PAGE
    ============================================= */
-.hero {
+/* ── NAV LOGO IMAGE ─────────────────────────── */
+.nav-logo-img {
+  height: 28px;
+  width: 28px;
+  object-fit: contain;
+  border-radius: 50%;
+  background: white;
+  padding: 2px;
+}
+
+/* =============================================
+   5. HERO CAROUSEL
+   ============================================= */
+.hero-carousel {
+  position: relative;
+  min-height: calc(100vh - var(--nav-height));
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-slide {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transition: opacity 1s ease;
+  z-index: 0;
+}
+
+.hero-slide.active {
+  opacity: 1;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  min-height: calc(100vh - var(--nav-height));
   text-align: center;
   padding: 60px 24px;
-  background:
-    linear-gradient(rgba(10, 40, 25, 0.62), rgba(10, 40, 25, 0.72)),
-    url('https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?auto=format&fit=crop&w=1400&q=80') center/cover no-repeat;
-  color: var(--white);
+  color: white;
+  max-width: 760px;
 }
 
-.hero h1 {
+.hero-logo-img {
+  height: 120px;
+  width: 120px;
+  object-fit: contain;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
+}
+
+.hero-content h1 {
   font-family: 'Playfair Display', serif;
   font-size: clamp(2rem, 6vw, 4rem);
   font-weight: 800;
@@ -236,29 +281,114 @@ button[type="submit"]:hover,
   letter-spacing: -0.5px;
 }
 
-.hero p {
+.hero-content p {
   font-size: clamp(0.95rem, 2.5vw, 1.15rem);
-  color: rgba(255, 255, 255, 0.82);
+  color: rgba(255,255,255,0.85);
   max-width: 520px;
-  margin: 0 auto 36px;
+  margin: 0 auto 32px;
   line-height: 1.7;
 }
 
-.hero button {
+.hero-btns {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 32px;
+}
+
+.hero-btn-primary {
   padding: 14px 36px;
   font-size: 1rem;
   background-color: var(--jamaica-gold);
   color: var(--primary-green);
   border-radius: var(--radius-sm);
   font-weight: 700;
-  box-shadow: 0 4px 18px rgba(255, 184, 28, 0.45);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(255,184,28,0.45);
+  transition: all 0.2s;
 }
 
-.hero button:hover {
+.hero-btn-primary:hover {
   background-color: var(--jamaica-gold-dark);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(255, 184, 28, 0.5);
 }
+
+.hero-btn-secondary {
+  padding: 14px 36px;
+  font-size: 1rem;
+  background: rgba(255,255,255,0.15);
+  color: white;
+  border: 2px solid rgba(255,255,255,0.5);
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.hero-btn-secondary:hover {
+  background: rgba(255,255,255,0.25);
+  transform: translateY(-2px);
+}
+
+.hero-dots {
+  display: flex;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.hero-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.4);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.3s;
+}
+
+.hero-dot.active {
+  background: var(--jamaica-gold);
+  transform: scale(1.3);
+}
+
+.hero-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  background: rgba(0,0,0,0.35);
+  color: white;
+  border: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  font-size: 28px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  line-height: 1;
+  padding: 0;
+}
+
+.hero-arrow:hover {
+  background: rgba(0,0,0,0.6);
+  transform: translateY(-50%) scale(1.05);
+  box-shadow: none;
+}
+
+.hero-arrow.left  { left: 20px; }
+.hero-arrow.right { right: 20px; }
+
+@media (max-width: 480px) {
+  .hero-arrow { display: none; }
+  .hero-logo-img { height: 80px; width: 80px; }
+}
+
 
 /* =============================================
    6. AUTH FORMS

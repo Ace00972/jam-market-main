@@ -1242,7 +1242,11 @@ function App() {
 
       {/* NAVIGATION */}
       <nav className="main-nav">
-        <div className="logo" onClick={() => setPage('home')}>JAM MARKET</div>
+        <div className="logo" onClick={() => setPage('home')}>
+          <img src="/logo.png" alt="Jam Market" className="nav-logo-img"
+            onError={e => e.target.style.display='none'} />
+          JAM MARKET
+        </div>
         <ul className="nav-links desktop-nav">
           <li className={page === 'home' ? 'active' : ''} onClick={() => setPage('home')}>Home</li>
           <li className={page === 'products' || page === 'productDetail' || page === 'checkout' || page === 'orderSuccess' ? 'active' : ''} onClick={() => { fetchProducts(); setPage('products'); }}>Marketplace</li>
@@ -1382,25 +1386,72 @@ function App() {
 
       <div className="page-content">
 
-        {page === 'home' && (
-          <div className="hero">
-            <h1>Jamaica's Smart<br />Farm Marketplace</h1>
-            <p>Buy and sell local produce directly from farmers. Get smart pricing, weather updates, and farming insights.</p>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-              <button onClick={() => setPage('login')}>Get Started</button>
-              <button style={{ background: 'rgba(255,255,255,0.15)', color: 'white', border: '2px solid rgba(255,255,255,0.5)' }}
-                onClick={() => { fetchProducts(); setPage('products'); }}>Browse Market</button>
+        {page === 'home' && (() => {
+          const slides = [
+            {
+              bg: 'https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?auto=format&fit=crop&w=1400&q=80',
+              title: "Jamaica's Smart\nFarm Marketplace",
+              sub: 'Buy and sell local produce directly from farmers across Jamaica.',
+              cta: 'Get Started', ctaAction: () => setPage('login'),
+              cta2: 'Browse Market', cta2Action: () => { fetchProducts(); setPage('products'); },
+            },
+            {
+              bg: 'https://images.unsplash.com/photo-1523741543316-beb7fc7023d8?auto=format&fit=crop&w=1400&q=80',
+              title: 'Smart Pricing &\nWeather Insights',
+              sub: 'Get real-time weather updates and AI-powered price suggestions to maximise your harvest profits.',
+              cta: 'Try Smart Price', ctaAction: () => setPage('smartPrice'),
+              cta2: 'Agri Hub', cta2Action: () => setPage('agriHub'),
+            },
+            {
+              bg: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=1400&q=80',
+              title: 'Connect Directly\nWith Farmers',
+              sub: 'No middlemen. Message farmers, track orders, and build lasting relationships across the island.',
+              cta: 'View Farmers Map', ctaAction: () => setPage('farmersMap'),
+              cta2: 'Register Now', cta2Action: () => setPage('register'),
+            },
+          ];
+          const [slide, setSlide] = React.useState(0);
+          React.useEffect(() => {
+            const t = setInterval(() => setSlide(s => (s + 1) % slides.length), 5000);
+            return () => clearInterval(t);
+          }, []);
+          const s = slides[slide];
+          return (
+            <div className="hero-carousel">
+              {slides.map((sl, i) => (
+                <div key={i} className={`hero-slide ${i === slide ? 'active' : ''}`}
+                  style={{ backgroundImage: `linear-gradient(rgba(10,40,25,0.65),rgba(10,40,25,0.75)), url('${sl.bg}')` }} />
+              ))}
+              <div className="hero-content">
+                <div className="hero-logo-wrap">
+                  <img src="https://i.imgur.com/placeholder.png"
+                    onError={e => e.target.style.display='none'}
+                    className="hero-logo-img" alt="Jam Market" />
+                </div>
+                <h1>{s.title.split('\n').map((l,i) => <React.Fragment key={i}>{l}{i===0&&<br/>}</React.Fragment>)}</h1>
+                <p>{s.sub}</p>
+                <div className="hero-btns">
+                  <button className="hero-btn-primary" onClick={s.ctaAction}>{s.cta}</button>
+                  <button className="hero-btn-secondary" onClick={s.cta2Action}>{s.cta2}</button>
+                </div>
+                <div className="hero-features">
+                  <span>🌤️ Live Weather</span>
+                  <span>💡 Smart Pricing</span>
+                  <span>🗺️ Farmer Map</span>
+                  <span>📊 Analytics</span>
+                  <span>⚠️ Pest Alerts</span>
+                </div>
+                <div className="hero-dots">
+                  {slides.map((_, i) => (
+                    <button key={i} className={`hero-dot ${i === slide ? 'active' : ''}`} onClick={() => setSlide(i)} />
+                  ))}
+                </div>
+              </div>
+              <button className="hero-arrow left" onClick={() => setSlide(s => (s - 1 + slides.length) % slides.length)}>&#8249;</button>
+              <button className="hero-arrow right" onClick={() => setSlide(s => (s + 1) % slides.length)}>&#8250;</button>
             </div>
-            {/* Feature pills */}
-            <div className="hero-features">
-              <span>🌤️ Live Weather</span>
-              <span>💡 Smart Pricing</span>
-              <span>🗺️ Farmer Map</span>
-              <span>📊 Analytics</span>
-              <span>⚠️ Pest Alerts</span>
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         {page === 'login' && (
           <section className="auth-container">
