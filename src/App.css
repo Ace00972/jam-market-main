@@ -87,6 +87,19 @@ body {
   user-select: none;
   flex-shrink: 0;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-logo-img {
+  height: 32px;
+  width: 32px;
+  object-fit: contain;
+  border-radius: 50%;
+  background: white;
+  padding: 2px;
+  flex-shrink: 0;
 }
 
 .nav-links {
@@ -270,7 +283,8 @@ button[type="submit"]:hover,
 
 /* RIGHT — image side */
 .hero-img-side {
-  flex: 0 0 420px;
+  flex: 0 0 360px;
+  max-width: 360px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -278,10 +292,10 @@ button[type="submit"]:hover,
 
 .hero-slide-img {
   width: 100%;
-  max-width: 420px;
-  height: auto;
+  max-width: 340px;
+  max-height: 340px;
   object-fit: contain;
-  filter: drop-shadow(0 8px 32px rgba(0,0,0,0.5));
+  filter: drop-shadow(0 8px 24px rgba(0,0,0,0.45));
   animation: heroFloat 3s ease-in-out infinite;
 }
 
