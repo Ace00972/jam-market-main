@@ -686,47 +686,47 @@ function AgriHubPage({ user }) {
 }
 
 // ── HERO CAROUSEL ─────────────────────────────
-function HeroCarousel({ onLogin, onProducts, onSmartPrice, onAgriHub, onFarmersMap, onRegister, fetchProducts }) {
+function HeroCarousel({ onLogin, onProducts, onSmartPrice, onAgriHub, onFarmersMap, onRegister, fetchProducts, isLoggedIn }) {
   const slides = [
     {
       img: '/photo.png',
       bg: '#3b1a0a',
       title: "Jamaica's Smart\nFarm Marketplace",
       sub: 'Buy and sell fresh local produce directly from farmers across Jamaica. No middlemen.',
-      cta: 'Get Started',        ctaAction: onLogin,
-      cta2: 'Browse Market',     cta2Action: () => { fetchProducts(); onProducts(); },
+      cta: 'Get Started',        ctaAction: onLogin,        ctaPublic: true,
+      cta2: 'Browse Market',     cta2Action: () => { fetchProducts(); onProducts(); }, cta2Public: true,
     },
     {
       img: '/photo1.png',
       bg: '#1a3a10',
       title: 'Fresh Produce\nDirect From Farmers',
       sub: 'Explore hundreds of listings from farmers island-wide. Retail and wholesale pricing available.',
-      cta: 'Shop Now',           ctaAction: () => { fetchProducts(); onProducts(); },
-      cta2: 'View Farmers Map',  cta2Action: onFarmersMap,
+      cta: 'Shop Now',           ctaAction: () => { fetchProducts(); onProducts(); }, ctaPublic: true,
+      cta2: 'View Farmers Map',  cta2Action: onFarmersMap,  cta2Public: false,
     },
     {
       img: '/photo2.png',
       bg: '#3b1a0a',
       title: 'Smart Pricing &\nWeather Insights',
       sub: 'Get AI-powered price suggestions and real-time weather updates to maximise your harvest profits.',
-      cta: 'Try Smart Price',    ctaAction: onSmartPrice,
-      cta2: 'Agri Hub',          cta2Action: onAgriHub,
+      cta: 'Try Smart Price',    ctaAction: onSmartPrice,   ctaPublic: false,
+      cta2: 'Agri Hub',          cta2Action: onAgriHub,     cta2Public: false,
     },
     {
       img: '/photo3.png',
       bg: '#1a0a0a',
       title: 'Built for\nJamaican Farmers',
       sub: 'Analytics, pest alerts, farming tips and a full marketplace — everything a Jamaican farmer needs.',
-      cta: 'Register as Farmer', ctaAction: onRegister,
-      cta2: 'Learn More',        cta2Action: onAgriHub,
+      cta: 'Register as Farmer', ctaAction: onRegister,     ctaPublic: true,
+      cta2: 'Learn More',        cta2Action: onAgriHub,     cta2Public: false,
     },
     {
       img: '/photo4.png',
       bg: '#3b1a0a',
       title: 'Connect, Sell &\nGrow Together',
       sub: 'Message farmers, track your orders, and build direct relationships across the island.',
-      cta: 'Get Started',        ctaAction: onLogin,
-      cta2: 'Browse Market',     cta2Action: () => { fetchProducts(); onProducts(); },
+      cta: 'Get Started',        ctaAction: onLogin,        ctaPublic: true,
+      cta2: 'Browse Market',     cta2Action: () => { fetchProducts(); onProducts(); }, cta2Public: true,
     },
   ];
 
@@ -744,6 +744,12 @@ function HeroCarousel({ onLogin, onProducts, onSmartPrice, onAgriHub, onFarmersM
   }, [slide]);
 
   const s = slides[slide];
+
+  const handleClick = (action, isPublic) => {
+    if (!isPublic && !isLoggedIn) { onLogin(); return; }
+    action();
+  };
+
   return (
     <div className="hero-carousel" style={{ background: s.bg, transition: 'background 0.6s ease' }}>
       <div className={`hero-carousel-inner ${fading ? 'fade' : ''}`}>
@@ -751,15 +757,8 @@ function HeroCarousel({ onLogin, onProducts, onSmartPrice, onAgriHub, onFarmersM
           <h1>{s.title.split('\n').map((l, i) => <React.Fragment key={i}>{l}{i === 0 && <br />}</React.Fragment>)}</h1>
           <p>{s.sub}</p>
           <div className="hero-btns">
-            <button className="hero-btn-primary" onClick={s.ctaAction}>{s.cta}</button>
-            <button className="hero-btn-secondary" onClick={s.cta2Action}>{s.cta2}</button>
-          </div>
-          <div className="hero-features">
-            <span>🌤️ Live Weather</span>
-            <span>💡 Smart Pricing</span>
-            <span>🗺️ Farmer Map</span>
-            <span>📊 Analytics</span>
-            <span>⚠️ Pest Alerts</span>
+            <button className="hero-btn-primary" onClick={() => handleClick(s.ctaAction, s.ctaPublic)}>{s.cta}</button>
+            <button className="hero-btn-secondary" onClick={() => handleClick(s.cta2Action, s.cta2Public)}>{s.cta2}</button>
           </div>
         </div>
         <div className="hero-img-side">
@@ -1486,6 +1485,7 @@ function App() {
             onFarmersMap={() => setPage('farmersMap')}
             onRegister={() => setPage('register')}
             fetchProducts={fetchProducts}
+            isLoggedIn={isLoggedIn}
           />
         )}
 
