@@ -685,6 +685,98 @@ function AgriHubPage({ user }) {
   );
 }
 
+// ── HERO CAROUSEL ─────────────────────────────
+function HeroCarousel({ onLogin, onProducts, onSmartPrice, onAgriHub, onFarmersMap, onRegister, fetchProducts }) {
+  const slides = [
+    {
+      img: '/photo.png',
+      bg: '#3b1a0a',
+      title: "Jamaica's Smart\nFarm Marketplace",
+      sub: 'Buy and sell fresh local produce directly from farmers across Jamaica. No middlemen.',
+      cta: 'Get Started',        ctaAction: onLogin,
+      cta2: 'Browse Market',     cta2Action: () => { fetchProducts(); onProducts(); },
+    },
+    {
+      img: '/photo1.png',
+      bg: '#1a3a10',
+      title: 'Fresh Produce\nDirect From Farmers',
+      sub: 'Explore hundreds of listings from farmers island-wide. Retail and wholesale pricing available.',
+      cta: 'Shop Now',           ctaAction: () => { fetchProducts(); onProducts(); },
+      cta2: 'View Farmers Map',  cta2Action: onFarmersMap,
+    },
+    {
+      img: '/photo2.png',
+      bg: '#3b1a0a',
+      title: 'Smart Pricing &\nWeather Insights',
+      sub: 'Get AI-powered price suggestions and real-time weather updates to maximise your harvest profits.',
+      cta: 'Try Smart Price',    ctaAction: onSmartPrice,
+      cta2: 'Agri Hub',          cta2Action: onAgriHub,
+    },
+    {
+      img: '/photo3.png',
+      bg: '#1a0a0a',
+      title: 'Built for\nJamaican Farmers',
+      sub: 'Analytics, pest alerts, farming tips and a full marketplace — everything a Jamaican farmer needs.',
+      cta: 'Register as Farmer', ctaAction: onRegister,
+      cta2: 'Learn More',        cta2Action: onAgriHub,
+    },
+    {
+      img: '/photo4.png',
+      bg: '#3b1a0a',
+      title: 'Connect, Sell &\nGrow Together',
+      sub: 'Message farmers, track your orders, and build direct relationships across the island.',
+      cta: 'Get Started',        ctaAction: onLogin,
+      cta2: 'Browse Market',     cta2Action: () => { fetchProducts(); onProducts(); },
+    },
+  ];
+
+  const [slide, setSlide] = useState(0);
+  const [fading, setFading] = useState(false);
+
+  const goTo = (idx) => {
+    setFading(true);
+    setTimeout(() => { setSlide(idx); setFading(false); }, 350);
+  };
+
+  useEffect(() => {
+    const t = setInterval(() => goTo((slide + 1) % slides.length), 5500);
+    return () => clearInterval(t);
+  }, [slide]);
+
+  const s = slides[slide];
+  return (
+    <div className="hero-carousel" style={{ background: s.bg, transition: 'background 0.6s ease' }}>
+      <div className={`hero-carousel-inner ${fading ? 'fade' : ''}`}>
+        <div className="hero-text-side">
+          <h1>{s.title.split('\n').map((l, i) => <React.Fragment key={i}>{l}{i === 0 && <br />}</React.Fragment>)}</h1>
+          <p>{s.sub}</p>
+          <div className="hero-btns">
+            <button className="hero-btn-primary" onClick={s.ctaAction}>{s.cta}</button>
+            <button className="hero-btn-secondary" onClick={s.cta2Action}>{s.cta2}</button>
+          </div>
+          <div className="hero-features">
+            <span>🌤️ Live Weather</span>
+            <span>💡 Smart Pricing</span>
+            <span>🗺️ Farmer Map</span>
+            <span>📊 Analytics</span>
+            <span>⚠️ Pest Alerts</span>
+          </div>
+        </div>
+        <div className="hero-img-side">
+          <img src={s.img} alt="Jam Market" className="hero-slide-img" />
+        </div>
+      </div>
+      <button className="hero-arrow left" onClick={() => goTo((slide - 1 + slides.length) % slides.length)}>&#8249;</button>
+      <button className="hero-arrow right" onClick={() => goTo((slide + 1) % slides.length)}>&#8250;</button>
+      <div className="hero-dots">
+        {slides.map((_, i) => (
+          <button key={i} className={`hero-dot ${i === slide ? 'active' : ''}`} onClick={() => goTo(i)} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── MAIN APP ──────────────────────────────────
 function App() {
   const [page, setPage]                       = useState('home');
@@ -1242,7 +1334,10 @@ function App() {
 
       {/* NAVIGATION */}
       <nav className="main-nav">
-        <div className="logo" onClick={() => setPage('home')}>JAM MARKET</div>
+        <div className="logo" onClick={() => setPage('home')}>
+          <img src="/logo.png" alt="" className="nav-logo-img" onError={e => e.target.style.display='none'} />
+          JAM MARKET
+        </div>
         <ul className="nav-links desktop-nav">
           <li className={page === 'home' ? 'active' : ''} onClick={() => setPage('home')}>Home</li>
           <li className={page === 'products' || page === 'productDetail' || page === 'checkout' || page === 'orderSuccess' ? 'active' : ''} onClick={() => { fetchProducts(); setPage('products'); }}>Marketplace</li>
@@ -1382,103 +1477,17 @@ function App() {
 
       <div className="page-content">
 
-        {page === 'home' && (() => {
-          const slides = [
-            {
-              img: '/photo.png',
-              bg: '#3b1a0a',
-              title: "Jamaica's Smart\nFarm Marketplace",
-              sub: 'Buy and sell fresh local produce directly from farmers across Jamaica. No middlemen.',
-              cta: 'Get Started',       ctaAction: () => setPage('login'),
-              cta2: 'Browse Market',    cta2Action: () => { fetchProducts(); setPage('products'); },
-            },
-            {
-              img: '/photo1.png',
-              bg: '#1a3a10',
-              title: 'Fresh Produce\nDirect From Farmers',
-              sub: 'Explore hundreds of listings from farmers island-wide. Retail and wholesale pricing available.',
-              cta: 'Shop Now',          ctaAction: () => { fetchProducts(); setPage('products'); },
-              cta2: 'View Farmers Map', cta2Action: () => setPage('farmersMap'),
-            },
-            {
-              img: '/photo2.png',
-              bg: '#3b1a0a',
-              title: 'Smart Pricing &\nWeather Insights',
-              sub: 'Get AI-powered price suggestions and real-time weather updates to maximise your harvest profits.',
-              cta: 'Try Smart Price',   ctaAction: () => setPage('smartPrice'),
-              cta2: 'Agri Hub',         cta2Action: () => setPage('agriHub'),
-            },
-            {
-              img: '/photo3.png',
-              bg: '#1a0a0a',
-              title: 'Built for\nJamaican Farmers',
-              sub: 'Analytics, pest alerts, farming tips and a full marketplace — everything a Jamaican farmer needs.',
-              cta: 'Register as Farmer', ctaAction: () => setPage('register'),
-              cta2: 'Learn More',        cta2Action: () => setPage('agriHub'),
-            },
-            {
-              img: '/photo4.png',
-              bg: '#3b1a0a',
-              title: 'Connect, Sell &\nGrow Together',
-              sub: 'Message farmers, track your orders, and build direct relationships across the island.',
-              cta: 'Get Started',       ctaAction: () => setPage('login'),
-              cta2: 'Browse Market',    cta2Action: () => { fetchProducts(); setPage('products'); },
-            },
-          ];
-          const [slide, setSlide] = React.useState(0);
-          const [animating, setAnimating] = React.useState(false);
-
-          const goTo = (idx) => {
-            if (animating) return;
-            setAnimating(true);
-            setSlide(idx);
-            setTimeout(() => setAnimating(false), 600);
-          };
-
-          React.useEffect(() => {
-            const t = setInterval(() => goTo((slide + 1) % slides.length), 5500);
-            return () => clearInterval(t);
-          }, [slide]);
-
-          const s = slides[slide];
-          return (
-            <div className="hero-carousel" style={{ background: s.bg }}>
-              <div className={`hero-carousel-inner ${animating ? 'fade' : ''}`}>
-                {/* LEFT — text */}
-                <div className="hero-text-side">
-                  <h1>{s.title.split('\n').map((l, i) => <React.Fragment key={i}>{l}{i === 0 && <br />}</React.Fragment>)}</h1>
-                  <p>{s.sub}</p>
-                  <div className="hero-btns">
-                    <button className="hero-btn-primary" onClick={s.ctaAction}>{s.cta}</button>
-                    <button className="hero-btn-secondary" onClick={s.cta2Action}>{s.cta2}</button>
-                  </div>
-                  <div className="hero-features">
-                    <span>🌤️ Live Weather</span>
-                    <span>💡 Smart Pricing</span>
-                    <span>🗺️ Farmer Map</span>
-                    <span>📊 Analytics</span>
-                    <span>⚠️ Pest Alerts</span>
-                  </div>
-                </div>
-                {/* RIGHT — image */}
-                <div className="hero-img-side">
-                  <img src={s.img} alt="Jam Market" className="hero-slide-img" />
-                </div>
-              </div>
-
-              {/* Arrows */}
-              <button className="hero-arrow left" onClick={() => goTo((slide - 1 + slides.length) % slides.length)}>&#8249;</button>
-              <button className="hero-arrow right" onClick={() => goTo((slide + 1) % slides.length)}>&#8250;</button>
-
-              {/* Dots */}
-              <div className="hero-dots">
-                {slides.map((_, i) => (
-                  <button key={i} className={`hero-dot ${i === slide ? 'active' : ''}`} onClick={() => goTo(i)} />
-                ))}
-              </div>
-            </div>
-          );
-        })()}
+        {page === 'home' && (
+          <HeroCarousel
+            onLogin={() => setPage('login')}
+            onProducts={() => setPage('products')}
+            onSmartPrice={() => setPage('smartPrice')}
+            onAgriHub={() => setPage('agriHub')}
+            onFarmersMap={() => setPage('farmersMap')}
+            onRegister={() => setPage('register')}
+            fetchProducts={fetchProducts}
+          />
+        )}
 
         {page === 'login' && (
           <section className="auth-container">
