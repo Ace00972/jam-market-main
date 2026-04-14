@@ -1242,11 +1242,7 @@ function App() {
 
       {/* NAVIGATION */}
       <nav className="main-nav">
-        <div className="logo" onClick={() => setPage('home')}>
-          <img src="/logo.png" alt="Jam Market" className="nav-logo-img"
-            onError={e => e.target.style.display='none'} />
-          JAM MARKET
-        </div>
+        <div className="logo" onClick={() => setPage('home')}>JAM MARKET</div>
         <ul className="nav-links desktop-nav">
           <li className={page === 'home' ? 'active' : ''} onClick={() => setPage('home')}>Home</li>
           <li className={page === 'products' || page === 'productDetail' || page === 'checkout' || page === 'orderSuccess' ? 'active' : ''} onClick={() => { fetchProducts(); setPage('products'); }}>Marketplace</li>
@@ -1389,66 +1385,97 @@ function App() {
         {page === 'home' && (() => {
           const slides = [
             {
-              bg: 'https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?auto=format&fit=crop&w=1400&q=80',
+              img: '/photo.png',
+              bg: '#3b1a0a',
               title: "Jamaica's Smart\nFarm Marketplace",
-              sub: 'Buy and sell local produce directly from farmers across Jamaica.',
-              cta: 'Get Started', ctaAction: () => setPage('login'),
-              cta2: 'Browse Market', cta2Action: () => { fetchProducts(); setPage('products'); },
+              sub: 'Buy and sell fresh local produce directly from farmers across Jamaica. No middlemen.',
+              cta: 'Get Started',       ctaAction: () => setPage('login'),
+              cta2: 'Browse Market',    cta2Action: () => { fetchProducts(); setPage('products'); },
             },
             {
-              bg: 'https://images.unsplash.com/photo-1523741543316-beb7fc7023d8?auto=format&fit=crop&w=1400&q=80',
+              img: '/photo1.png',
+              bg: '#1a3a10',
+              title: 'Fresh Produce\nDirect From Farmers',
+              sub: 'Explore hundreds of listings from farmers island-wide. Retail and wholesale pricing available.',
+              cta: 'Shop Now',          ctaAction: () => { fetchProducts(); setPage('products'); },
+              cta2: 'View Farmers Map', cta2Action: () => setPage('farmersMap'),
+            },
+            {
+              img: '/photo2.png',
+              bg: '#3b1a0a',
               title: 'Smart Pricing &\nWeather Insights',
-              sub: 'Get real-time weather updates and AI-powered price suggestions to maximise your harvest profits.',
-              cta: 'Try Smart Price', ctaAction: () => setPage('smartPrice'),
-              cta2: 'Agri Hub', cta2Action: () => setPage('agriHub'),
+              sub: 'Get AI-powered price suggestions and real-time weather updates to maximise your harvest profits.',
+              cta: 'Try Smart Price',   ctaAction: () => setPage('smartPrice'),
+              cta2: 'Agri Hub',         cta2Action: () => setPage('agriHub'),
             },
             {
-              bg: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=1400&q=80',
-              title: 'Connect Directly\nWith Farmers',
-              sub: 'No middlemen. Message farmers, track orders, and build lasting relationships across the island.',
-              cta: 'View Farmers Map', ctaAction: () => setPage('farmersMap'),
-              cta2: 'Register Now', cta2Action: () => setPage('register'),
+              img: '/photo3.png',
+              bg: '#1a0a0a',
+              title: 'Built for\nJamaican Farmers',
+              sub: 'Analytics, pest alerts, farming tips and a full marketplace — everything a Jamaican farmer needs.',
+              cta: 'Register as Farmer', ctaAction: () => setPage('register'),
+              cta2: 'Learn More',        cta2Action: () => setPage('agriHub'),
+            },
+            {
+              img: '/photo4.png',
+              bg: '#3b1a0a',
+              title: 'Connect, Sell &\nGrow Together',
+              sub: 'Message farmers, track your orders, and build direct relationships across the island.',
+              cta: 'Get Started',       ctaAction: () => setPage('login'),
+              cta2: 'Browse Market',    cta2Action: () => { fetchProducts(); setPage('products'); },
             },
           ];
           const [slide, setSlide] = React.useState(0);
+          const [animating, setAnimating] = React.useState(false);
+
+          const goTo = (idx) => {
+            if (animating) return;
+            setAnimating(true);
+            setSlide(idx);
+            setTimeout(() => setAnimating(false), 600);
+          };
+
           React.useEffect(() => {
-            const t = setInterval(() => setSlide(s => (s + 1) % slides.length), 5000);
+            const t = setInterval(() => goTo((slide + 1) % slides.length), 5500);
             return () => clearInterval(t);
-          }, []);
+          }, [slide]);
+
           const s = slides[slide];
           return (
-            <div className="hero-carousel">
-              {slides.map((sl, i) => (
-                <div key={i} className={`hero-slide ${i === slide ? 'active' : ''}`}
-                  style={{ backgroundImage: `linear-gradient(rgba(10,40,25,0.65),rgba(10,40,25,0.75)), url('${sl.bg}')` }} />
-              ))}
-              <div className="hero-content">
-                <div className="hero-logo-wrap">
-                  <img src="https://i.imgur.com/placeholder.png"
-                    onError={e => e.target.style.display='none'}
-                    className="hero-logo-img" alt="Jam Market" />
+            <div className="hero-carousel" style={{ background: s.bg }}>
+              <div className={`hero-carousel-inner ${animating ? 'fade' : ''}`}>
+                {/* LEFT — text */}
+                <div className="hero-text-side">
+                  <h1>{s.title.split('\n').map((l, i) => <React.Fragment key={i}>{l}{i === 0 && <br />}</React.Fragment>)}</h1>
+                  <p>{s.sub}</p>
+                  <div className="hero-btns">
+                    <button className="hero-btn-primary" onClick={s.ctaAction}>{s.cta}</button>
+                    <button className="hero-btn-secondary" onClick={s.cta2Action}>{s.cta2}</button>
+                  </div>
+                  <div className="hero-features">
+                    <span>🌤️ Live Weather</span>
+                    <span>💡 Smart Pricing</span>
+                    <span>🗺️ Farmer Map</span>
+                    <span>📊 Analytics</span>
+                    <span>⚠️ Pest Alerts</span>
+                  </div>
                 </div>
-                <h1>{s.title.split('\n').map((l,i) => <React.Fragment key={i}>{l}{i===0&&<br/>}</React.Fragment>)}</h1>
-                <p>{s.sub}</p>
-                <div className="hero-btns">
-                  <button className="hero-btn-primary" onClick={s.ctaAction}>{s.cta}</button>
-                  <button className="hero-btn-secondary" onClick={s.cta2Action}>{s.cta2}</button>
-                </div>
-                <div className="hero-features">
-                  <span>🌤️ Live Weather</span>
-                  <span>💡 Smart Pricing</span>
-                  <span>🗺️ Farmer Map</span>
-                  <span>📊 Analytics</span>
-                  <span>⚠️ Pest Alerts</span>
-                </div>
-                <div className="hero-dots">
-                  {slides.map((_, i) => (
-                    <button key={i} className={`hero-dot ${i === slide ? 'active' : ''}`} onClick={() => setSlide(i)} />
-                  ))}
+                {/* RIGHT — image */}
+                <div className="hero-img-side">
+                  <img src={s.img} alt="Jam Market" className="hero-slide-img" />
                 </div>
               </div>
-              <button className="hero-arrow left" onClick={() => setSlide(s => (s - 1 + slides.length) % slides.length)}>&#8249;</button>
-              <button className="hero-arrow right" onClick={() => setSlide(s => (s + 1) % slides.length)}>&#8250;</button>
+
+              {/* Arrows */}
+              <button className="hero-arrow left" onClick={() => goTo((slide - 1 + slides.length) % slides.length)}>&#8249;</button>
+              <button className="hero-arrow right" onClick={() => goTo((slide + 1) % slides.length)}>&#8250;</button>
+
+              {/* Dots */}
+              <div className="hero-dots">
+                {slides.map((_, i) => (
+                  <button key={i} className={`hero-dot ${i === slide ? 'active' : ''}`} onClick={() => goTo(i)} />
+                ))}
+              </div>
             </div>
           );
         })()}
