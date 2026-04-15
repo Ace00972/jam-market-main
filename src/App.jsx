@@ -1879,6 +1879,7 @@ function App() {
               )}
               <div className="welcome-actions" style={{ marginTop: 24 }}>
                 <button onClick={() => setPage('orders')}>View My Orders</button>
+                <button style={{ background: '#1b4332', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 600, cursor: 'pointer' }} onClick={() => downloadInvoice({ ...orderResult.order, payment_method: checkoutPayment }, user?.name)}>🧾 Download Invoice</button>
                 <button className="btn-alt" onClick={() => { fetchProducts(); setPage('products'); }}>Back to Marketplace</button>
               </div>
             </div>
@@ -2490,6 +2491,133 @@ function AdminPanel() {
   );
 }
 
+// ── INVOICE DOWNLOAD ─────────────────────────
+function downloadInvoice(order, userName = '') {
+  const shippingCompany = getShippingCompany(order.shipping_company);
+  const date = order.created_at
+    ? new Date(order.created_at).toLocaleDateString('en-JM', { year: 'numeric', month: 'long', day: 'numeric' })
+    : new Date().toLocaleDateString('en-JM', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  const subtotal  = parseFloat(order.subtotal || order.total_price || 0);
+  const shipping  = parseFloat(order.shipping_fee || 0);
+  const tax       = parseFloat(order.tax_amount || 0);
+  const total     = parseFloat(order.total_price || 0);
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <title>Invoice #${order.id} - JaM Market</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: Arial, sans-serif; color: #222; background: #fff; padding: 40px; }
+    .header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:32px; border-bottom:3px solid #f5a800; padding-bottom:20px; }
+    .brand { display:flex; flex-direction:column; }
+    .brand-name { font-size:28px; font-weight:900; color:#f5a800; letter-spacing:1px; }
+    .brand-name span { color:#1b4332; }
+    .brand-sub { font-size:12px; color:#666; margin-top:2px; }
+    .invoice-meta { text-align:right; }
+    .invoice-meta h2 { font-size:22px; color:#1b4332; margin-bottom:6px; }
+    .invoice-meta p { font-size:13px; color:#555; line-height:1.7; }
+    .section { margin-bottom:24px; }
+    .section-title { font-size:12px; font-weight:700; text-transform:uppercase; color:#1b4332; letter-spacing:1px; margin-bottom:10px; border-bottom:1px solid #eee; padding-bottom:4px; }
+    .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .info-box p { font-size:13px; line-height:1.8; color:#444; }
+    .info-box strong { color:#222; }
+    table { width:100%; border-collapse:collapse; margin-bottom:8px; }
+    thead tr { background:#1b4332; color:#fff; }
+    th { padding:10px 12px; text-align:left; font-size:13px; }
+    td { padding:10px 12px; font-size:13px; border-bottom:1px solid #f0f0f0; }
+    tbody tr:nth-child(even) { background:#fafafa; }
+    .totals { margin-left:auto; width:280px; margin-top:8px; }
+    .totals-row { display:flex; justify-content:space-between; padding:6px 0; font-size:13px; border-bottom:1px solid #eee; }
+    .totals-row.grand { font-size:16px; font-weight:700; color:#1b4332; border-bottom:none; padding-top:10px; }
+    .status-badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:600; }
+    .badge-pending { background:#fff3cd; color:#856404; }
+    .badge-confirmed { background:#cfe2ff; color:#084298; }
+    .badge-shipped { background:#e8d5ff; color:#5a2d82; }
+    .badge-delivered { background:#d1f7e8; color:#0f5132; }
+    .badge-cancelled { background:#f8d7da; color:#842029; }
+    .footer { margin-top:40px; text-align:center; font-size:12px; color:#999; border-top:1px solid #eee; padding-top:16px; }
+    @media print { body { padding:20px; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="brand">
+      <div class="brand-name">JaM <span>Market</span></div>
+      <div class="brand-sub">Agricultural Marketplace • Jamaica</div>
+    </div>
+    <div class="invoice-meta">
+      <h2>INVOICE</h2>
+      <p><strong>Invoice #:</strong> INV-${String(order.id).padStart(5, '0')}<br/>
+         <strong>Order #:</strong> ${order.id}<br/>
+         <strong>Date:</strong> ${date}<br/>
+         <strong>Status:</strong> <span class="status-badge badge-${order.status}">${(order.status || '').toUpperCase()}</span>
+      </p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="info-grid">
+      <div class="info-box">
+        <div class="section-title">Billed To</div>
+        <p><strong>${userName || order.customer_name || 'Customer'}</strong><br/>
+           JaM Market Account<br/>
+           Jamaica
+        </p>
+      </div>
+      <div class="info-box">
+        <div class="section-title">Delivery Info</div>
+        <p>
+          <strong>Method:</strong> ${order.delivery_type === 'third_party' ? (shippingCompany ? shippingCompany.label : 'Third Party') : 'Own Delivery'}<br/>
+          <strong>Payment:</strong> ${(order.payment_method || order.payment_status || '').replace(/_/g, ' ').toUpperCase()}<br/>
+          ${order.transaction_id ? `<strong>Transaction ID:</strong> ${order.transaction_id}` : ''}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Order Details</div>
+    <table>
+      <thead>
+        <tr><th>Product</th><th>Farmer</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>${order.product_name || 'Product'}</td>
+          <td>${order.farmer_name || '—'}</td>
+          <td>${order.quantity || 1}</td>
+          <td>J$${(subtotal / (order.quantity || 1)).toLocaleString()}</td>
+          <td>J$${subtotal.toLocaleString()}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="totals">
+    <div class="totals-row"><span>Subtotal</span><span>J$${subtotal.toLocaleString()}</span></div>
+    <div class="totals-row"><span>Shipping</span><span>J$${shipping.toLocaleString()}</span></div>
+    <div class="totals-row"><span>GCT (15%)</span><span>J$${tax.toLocaleString()}</span></div>
+    <div class="totals-row grand"><span>Total Paid</span><span>J$${total.toLocaleString()}</span></div>
+  </div>
+
+  <div class="footer">
+    <p>Thank you for shopping with JaM Market — Supporting Jamaican Farmers 🇯🇲</p>
+    <p style="margin-top:4px;">Generated on ${new Date().toLocaleDateString('en-JM', { year:'numeric', month:'long', day:'numeric' })}</p>
+  </div>
+
+  <script>window.onload = () => { window.print(); }</script>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  const win  = window.open(url, '_blank');
+  if (win) win.focus();
+}
+
 // ── ORDERS PAGE ───────────────────────────────
 function OrdersPage({ user }) {
   const [orders, setOrders]   = useState([]);
@@ -2559,6 +2687,7 @@ function OrdersPage({ user }) {
                         <option value="cancelled">Cancelled</option>
                       </select>
                     )}
+                    <button style={{ padding: '4px 12px', fontSize: 13, background: '#1b4332', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }} onClick={() => downloadInvoice(o, user?.name)}>🧾 Invoice</button>
                     <button className="btn-danger" style={{ padding: '4px 12px', fontSize: 13 }} onClick={() => cancelOrder(o.id)}>Cancel</button>
                   </td>
                 </tr>
